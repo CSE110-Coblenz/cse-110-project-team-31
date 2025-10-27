@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { GamePhase, PlayerState, MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { BakingMinigame } from './BakingMinigame';
+import { CleaningMinigame } from './CleaningMinigame';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -72,7 +73,7 @@ export class GameManager {
         const info = new Konva.Text({
             x: 50,
             y: 100,
-            text: `Funds: $${this.player.funds.toFixed(2)}\nFlour: ${this.player.flourInventory} units`,
+            text: `Funds: $${this.player.funds.toFixed(2)}\nFlour: ${this.player.flourInventory} units\nBread Capacity: ${this.player.maxBreadCapacity} loaves`,
             fontSize: 20,
             fill: 'black'
         });
@@ -187,41 +188,52 @@ export class GameManager {
         this.layer.add(sellButton.group);
     }
 
+
+        private onCleaningComplete(result: MinigameResult): void {
+        // Clean up minigame
+        if (this.currentCleaningMinigame) {
+            this.currentCleaningMinigame.cleanup();
+            this.currentCleaningMinigame = null;
+        }
+
+        // Calculate next day's capacity based on dishes cleaned
+        // If you cleaned all dishes, you get max capacity
+        // If you only cleaned some, your capacity is reduced
+        const totalDishes = this.config.multiplicationProblems || 20;
+        const cleanedDishes = result.correctAnswers;
+        
+        // Set capacity for next day
+        // Option 1: Direct mapping (if cleaned 5 dishes, capacity = 5)
+        this.player.maxBreadCapacity = Math.min(cleanedDishes, this.config.maxBreadCapacity);
+        
+        // Option 2: Percentage-based (if cleaned 50% of dishes, capacity = 50% of max)
+        // const cleanPercentage = cleanedDishes / totalDishes;
+        // this.player.maxBreadCapacity = Math.floor(this.config.maxBreadCapacity * cleanPercentage);
+
+        this.player.currentDay++;
+        
+        // Check win/loss
+        if (this.player.funds >= this.config.winThreshold) {
+            this.currentPhase = GamePhase.GAME_OVER;
+        } else if (this.player.funds <= this.config.bankruptcyThreshold) {
+            this.currentPhase = GamePhase.GAME_OVER;
+        } else {
+            this.currentPhase = GamePhase.SHOPPING;
+        }
+        
+        this.renderCurrentPhase();
+    }
+
+
     private renderCleaningPhase(): void {
-        const title = new Konva.Text({
-            x: 50,
-            y: 50,
-            text: 'Cleaning Phase - Multiplication Problems',
-            fontSize: 30,
-            fill: 'black'
-        });
-        this.layer.add(title);
+        this.layer.destroyChildren();
 
-        const info = new Konva.Text({
-            x: 50,
-            y: 100,
-            text: 'Clean dishes!\n(Placeholder - will implement minigame)',
-            fontSize: 20,
-            fill: 'black'
-        });
-        this.layer.add(info);
-
-        // Skip to next day
-        const skipButton = this.createButton(50, 300, 'Finish Cleaning', () => {
-            this.player.currentDay++;
-            
-            // Check win/loss
-            if (this.player.funds >= this.config.winThreshold) {
-                this.currentPhase = GamePhase.GAME_OVER;
-            } else if (this.player.funds <= this.config.bankruptcyThreshold) {
-                this.currentPhase = GamePhase.GAME_OVER;
-            } else {
-                this.currentPhase = GamePhase.SHOPPING;
-            }
-            
-            this.renderCurrentPhase();
-        });
-        this.layer.add(skipButton.group);
+        // Start the cleaning minigame
+        this.currentCleaningMinigame = new CleaningMinigame(
+            this.stage,
+            this.layer,
+            (result) => this.onCleaningComplete(result)
+        );
     }
 
     private renderGameOverPhase(): void {
