@@ -22,11 +22,18 @@ export class BakingMinigame {
     
     private timerInterval: number | null = null;
     private onComplete: (result: MinigameResult) => void;
+    private canMakeMoreCookies: () => boolean;
 
-    constructor(stage: Konva.Stage, layer: Konva.Layer, onComplete: (result: MinigameResult) => void) {
+    constructor(
+        stage: Konva.Stage, 
+        layer: Konva.Layer, 
+        onComplete: (result: MinigameResult) => void,
+        canMakeMoreCookies: () => boolean  // Add this parameter
+    ) {
         this.stage = stage;
         this.layer = layer;
         this.onComplete = onComplete;
+        this.canMakeMoreCookies = canMakeMoreCookies;  // Store it
         this.timeRemaining = this.config.bakingTime;
         
         this.setupUI();
@@ -181,8 +188,18 @@ export class BakingMinigame {
         this.totalProblems++;
 
         if (userAnswer === this.currentProblem.answer) {
-            this.correctAnswers++;
-            this.showFeedback('Cookie Made! ✓', '#27ae60');
+            // Check if user has ingredients before counting the cookie
+            if (this.canMakeMoreCookies()) {
+                this.correctAnswers++;
+                this.showFeedback('Cookie Made! ✓', '#27ae60');
+            } else {
+                this.showFeedback('Out of Ingredients!', '#e74c3c');
+                // End minigame early
+                setTimeout(() => {
+                    this.endMinigame();
+                }, 1000);
+                return;
+            }
         } else {
             this.showFeedback('Wrong! ✗', '#e74c3c');
         }

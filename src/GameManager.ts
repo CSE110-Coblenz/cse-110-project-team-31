@@ -150,15 +150,8 @@ export class GameManager {
             this.currentMinigame = null;
         }
 
-        // Each correct answer = 1 cookie made
+        // Cookies already made and ingredients consumed during baking
         const cookiesMade = result.correctAnswers;
-        
-        // Deduct ingredients (1 of each per cookie)
-        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
-        ingredientNames.forEach(name => {
-            const current = this.player.ingredients.get(name) || 0;
-            this.player.ingredients.set(name, Math.max(0, current - cookiesMade));
-        });
         
         // Sell cookies automatically
         const revenue = cookiesMade * this.config.cookiePrice;
@@ -169,16 +162,35 @@ export class GameManager {
         this.renderCurrentPhase();
     }
 
-        private canMakeCookies(): boolean {
+    private canMakeCookies(): boolean {
+    const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
+    return ingredientNames.every(name => (this.player.ingredients.get(name) || 0) > 0);
+}
+
+    private canMakeOneCookie(): boolean {
         const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
-        return ingredientNames.every(name => (this.player.ingredients.get(name) || 0) > 0);
+        
+        // Check if we have at least 1 of each
+        const hasIngredients = ingredientNames.every(name => 
+            (this.player.ingredients.get(name) || 0) >= 1
+        );
+        
+        if (hasIngredients) {
+            // Consume 1 of each ingredient immediately
+            ingredientNames.forEach(name => {
+                const current = this.player.ingredients.get(name) || 0;
+                this.player.ingredients.set(name, current - 1);
+            });
+            return true;
+        }
+        
+        return false;
     }
 
 
     private renderBakingPhase(): void {
         this.layer.destroyChildren();
         
-        // Add background back
         if (this.backgroundImage) {
             this.layer.add(this.backgroundImage);
         }
@@ -186,7 +198,8 @@ export class GameManager {
         this.currentMinigame = new BakingMinigame(
             this.stage,
             this.layer,
-            (result) => this.onBakingComplete(result)
+            (result) => this.onBakingComplete(result),
+            () => this.canMakeOneCookie()  // Pass the check function
         );
     }
 
