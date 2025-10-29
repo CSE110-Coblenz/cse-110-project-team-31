@@ -16,11 +16,13 @@ export interface Ingredient {
 
 export interface PlayerState {
     funds: number;
-    ingredients: Map<string, number>;  // Changed from flourInventory
+    ingredients: Map<string, number>;
     breadInventory: Bread[];
     maxBreadCapacity: number;
     currentDay: number;
+    dishesToClean: number;  // Add this
 }
+
 export interface Bread {
     quality: number; // 0-100
     quantity: number;

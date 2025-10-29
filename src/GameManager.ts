@@ -30,12 +30,13 @@ export class GameManager {
         // this.currentPhase = GamePhase.SHOPPING;
         this.currentPhase = GamePhase.HOW_TO_PLAY;
         this.player = {
-            funds: this.config.startingFunds,
-            ingredients: new Map<string, number>(),  // Changed
-            breadInventory: [],
-            maxBreadCapacity: this.config.maxBreadCapacity,
-            currentDay: 1
-        };
+        funds: this.config.startingFunds,
+        ingredients: new Map<string, number>(),
+        breadInventory: [],
+        maxBreadCapacity: this.config.maxBreadCapacity,
+        currentDay: 1,
+        dishesToClean: 0  // Add this
+    };
             
         window.addEventListener('resize', () => {
         this.handleResize(container);
@@ -158,6 +159,9 @@ export class GameManager {
         const revenue = cookiesMade * this.config.cookiePrice;
         this.player.funds += revenue;
         
+        // Store cookies made for cleaning phase
+        this.player.dishesToClean = cookiesMade;  // Add this line
+        
         // Move to cleaning phase
         this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
@@ -207,26 +211,20 @@ export class GameManager {
 
 
 
-        private onCleaningComplete(result: MinigameResult): void {
-        // Clean up minigame
+    private onCleaningComplete(result: MinigameResult): void {
         if (this.currentCleaningMinigame) {
             this.currentCleaningMinigame.cleanup();
             this.currentCleaningMinigame = null;
         }
 
-        // Calculate next day's capacity based on dishes cleaned
-        // If you cleaned all dishes, you get max capacity
-        // If you only cleaned some, your capacity is reduced
-        const totalDishes = this.config.multiplicationProblems || 20;
-        const cleanedDishes = result.correctAnswers;
+        const dishesNotCleaned = this.player.dishesToClean - result.correctAnswers;
         
-        // Set capacity for next day
-        // Option 1: Direct mapping (if cleaned 5 dishes, capacity = 5)
-        this.player.maxBreadCapacity = Math.min(cleanedDishes, this.config.maxBreadCapacity);
-        
-        // Option 2: Percentage-based (if cleaned 50% of dishes, capacity = 50% of max)
-        // const cleanPercentage = cleanedDishes / totalDishes;
-        // this.player.maxBreadCapacity = Math.floor(this.config.maxBreadCapacity * cleanPercentage);
+        // Apply $10 penalty per uncleaned dish
+        if (dishesNotCleaned > 0) {
+            const penalty = dishesNotCleaned * 10;
+            this.player.funds -= penalty;
+            alert(`${dishesNotCleaned} dishes not cleaned! Penalty: -$${penalty}`);
+        }
 
         this.player.currentDay++;
         
@@ -236,7 +234,7 @@ export class GameManager {
         } else if (this.player.funds <= this.config.bankruptcyThreshold) {
             this.currentPhase = GamePhase.GAME_OVER;
         } else {
-            this.currentPhase = GamePhase.SHOPPING;
+            this.currentPhase = GamePhase.ORDER;  // Back to orders for next day
         }
         
         this.renderCurrentPhase();
@@ -246,7 +244,6 @@ export class GameManager {
     private renderCleaningPhase(): void {
         this.layer.destroyChildren();
         
-        // Add background back
         if (this.backgroundImage) {
             this.layer.add(this.backgroundImage);
         }
@@ -254,6 +251,7 @@ export class GameManager {
         this.currentCleaningMinigame = new CleaningMinigame(
             this.stage,
             this.layer,
+            this.player.dishesToClean,  // Pass dishes count
             (result) => this.onCleaningComplete(result)
         );
     }

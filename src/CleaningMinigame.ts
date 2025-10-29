@@ -23,9 +23,18 @@ export class CleaningMinigame {
     private onComplete: (result: MinigameResult) => void;
     private keyboardHandler: (e: KeyboardEvent) => void;
 
-    constructor(stage: Konva.Stage, layer: Konva.Layer, onComplete: (result: MinigameResult) => void) {
+    private totalDishesToClean: number;
+    private dishesCleaned: number = 0;
+
+    constructor(
+        stage: Konva.Stage, 
+        layer: Konva.Layer,
+        totalDishesToClean: number,  // Add this parameter
+        onComplete: (result: MinigameResult) => void
+    ) {
         this.stage = stage;
         this.layer = layer;
+        this.totalDishesToClean = totalDishesToClean;
         this.onComplete = onComplete;
         this.timeRemaining = this.config.cleaningTime;
         
@@ -75,7 +84,7 @@ export class CleaningMinigame {
         this.scoreText = new Konva.Text({
             x: 50,
             y: 80,
-            text: `Dishes Cleaned: ${this.correctAnswers} / ${this.totalProblems}`,
+            text: `Dishes Cleaned: ${this.dishesCleaned} / ${this.totalDishesToClean}`,
             fontSize: 20,
             fill: '#16a085'
         });
@@ -215,7 +224,16 @@ export class CleaningMinigame {
 
         if (userAnswer === this.currentProblem.answer) {
             this.correctAnswers++;
+            this.dishesCleaned++;
             this.showFeedback('Clean! ✓', '#27ae60');
+            
+            // Check if all dishes are cleaned
+            if (this.dishesCleaned >= this.totalDishesToClean) {
+                setTimeout(() => {
+                    this.endMinigame();
+                }, 500);
+                return;
+            }
         } else {
             this.showFeedback('Still Dirty! ✗', '#e74c3c');
         }
@@ -224,7 +242,6 @@ export class CleaningMinigame {
         this.userInput = '';
         this.updateInputDisplay();
         
-        // Generate new problem after short delay
         setTimeout(() => {
             this.feedbackText.text('');
             this.generateNewProblem();
@@ -239,7 +256,7 @@ export class CleaningMinigame {
     }
 
     private updateScore(): void {
-        this.scoreText.text(`Dishes Cleaned: ${this.correctAnswers} / ${this.totalProblems}`);
+        this.scoreText.text(`Dishes Cleaned: ${this.dishesCleaned} / ${this.totalDishesToClean}`);
         this.layer.draw();
     }
 
