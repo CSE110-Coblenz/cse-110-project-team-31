@@ -14,6 +14,7 @@ export class GameManager {
     private player: PlayerState;
     private config = ConfigManager.getInstance().getConfig();
     private currentMinigame: BakingMinigame | null = null;
+    private currentCleaningMinigame: CleaningMinigame | null = null; 
     private backgroundImage: Konva.Image | null = null;
 
     constructor(container: HTMLDivElement) {
@@ -244,8 +245,12 @@ export class GameManager {
 
     private renderCleaningPhase(): void {
         this.layer.destroyChildren();
+        
+        // Add background back
+        if (this.backgroundImage) {
+            this.layer.add(this.backgroundImage);
+        }
 
-        // Start the cleaning minigame
         this.currentCleaningMinigame = new CleaningMinigame(
             this.stage,
             this.layer,

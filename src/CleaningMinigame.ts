@@ -39,6 +39,7 @@ export class CleaningMinigame {
 
     private setupUI(): void {
         // Background for cleaning theme
+        /*
         const background = new Konva.Rect({
             x: 0,
             y: 0,
@@ -47,7 +48,7 @@ export class CleaningMinigame {
             fill: '#e8f4f8'
         });
         this.layer.add(background);
-
+        */
         // Title
         const title = new Konva.Text({
             x: 50,
