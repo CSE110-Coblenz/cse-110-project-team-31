@@ -8,11 +8,13 @@ import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
 import { DaySummaryScreen } from './DaySummaryScreen';
 import { LoginScreen } from './LoginScreen'; 
+import { RecipeBookScreen } from './RecipeBookScreen';
 
 export class GameManager {
     private stage: Konva.Stage;
     private layer: Konva.Layer;
     private currentPhase: GamePhase;
+    private previousPhase: GamePhase; // <-- We use this to go "back"
     private player: PlayerState;
     private config = ConfigManager.getInstance().getConfig();
     private currentMinigame: BakingMinigame | null = null;
@@ -20,6 +22,15 @@ export class GameManager {
     private backgroundImage: Konva.Image | null = null;
     private daySales: number = 0;
     private dayExpenses: number = 0;
+
+    // This is your recipe for 1 cookie
+    private cookieRecipe: Map<string, number> = new Map([
+        ['Flour', 3],
+        ['Sugar', 1],
+        ['Butter', 1],
+        ['Chocolate', 1],
+        ['Baking Soda', 1]
+    ]);
 
     constructor(container: HTMLDivElement) {
         this.stage = new Konva.Stage({
@@ -31,10 +42,10 @@ export class GameManager {
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
 
-        // this.currentPhase = GamePhase.SHOPPING;
         this.currentPhase = GamePhase.LOGIN;
+        this.previousPhase = GamePhase.LOGIN;
         this.player = {
-            username: '', // <-- Initialize the new username property
+            username: '',
             funds: this.config.startingFunds,
             ingredients: new Map<string, number>(),
             breadInventory: [],
@@ -44,31 +55,23 @@ export class GameManager {
         };
             
         window.addEventListener('resize', () => {
-        this.handleResize(container);
+            this.handleResize(container);
         });
 
         this.loadBackground();
-        
     }
 
-
-        private handleResize(container: HTMLDivElement): void {
-            this.stage.width(container.offsetWidth);
-            this.stage.height(container.offsetHeight);
-            
-            // Reload background with new size
-            if (this.backgroundImage) {
-                this.backgroundImage.width(this.stage.width());
-                this.backgroundImage.height(this.stage.height());
-            }
-            
-            // Re-render current phase
-            this.renderCurrentPhase();
+    private handleResize(container: HTMLDivElement): void {
+        this.stage.width(container.offsetWidth);
+        this.stage.height(container.offsetHeight);
+        if (this.backgroundImage) {
+            this.backgroundImage.width(this.stage.width());
+            this.backgroundImage.height(this.stage.height());
         }
+        this.renderCurrentPhase();
+    }
 
-
-        private loadBackground(): void {
-            // function for loading background 
+    private loadBackground(): void { 
         const imageObj = new Image();
         imageObj.onload = () => {
             this.backgroundImage = new Konva.Image({
@@ -82,9 +85,9 @@ export class GameManager {
             this.renderCurrentPhase();
         };
         imageObj.onerror = () => {
-        console.error('Failed to load background image');
-        this.renderCurrentPhase();
-    };
+            console.error('Failed to load background image');
+            this.renderCurrentPhase();
+        };
         imageObj.src = '/background1.jpg';
     }
 
@@ -96,31 +99,53 @@ export class GameManager {
         }
 
         switch (this.currentPhase) {
-            // --- THIS IS THE MISSING PART ---
             case GamePhase.LOGIN:
                 new LoginScreen(this.stage, this.layer, (username) => {
-                    this.player.username = username; // Save the username
-                    this.currentPhase = GamePhase.HOW_TO_PLAY; // Go to the tutorial next
-                    this.renderCurrentPhase(); // Re-render the new phase
+                    this.player.username = username;
+                    this.previousPhase = GamePhase.LOGIN;
+                    this.currentPhase = GamePhase.HOW_TO_PLAY;
+                    this.renderCurrentPhase();
                 });
                 break;
-            // --- END OF MISSING PART ---
-
             case GamePhase.HOW_TO_PLAY:  
-            new HowToPlayScreen(this.stage, this.layer, () => {
-                this.currentPhase = GamePhase.ORDER;
-                this.renderCurrentPhase();
-            });
-            break;
+                new HowToPlayScreen(this.stage, this.layer, () => {
+                    this.previousPhase = GamePhase.HOW_TO_PLAY;
+                    this.currentPhase = GamePhase.ORDER;
+                    this.renderCurrentPhase();
+                });
+                break;
             case GamePhase.ORDER:
-            new OrderScreen(this.stage, this.layer, this.player.currentDay, () => {
-                this.currentPhase = GamePhase.SHOPPING;
-                this.renderCurrentPhase();
-            });
-            break;
+                new OrderScreen(
+                    this.stage, 
+                    this.layer, 
+                    this.player.currentDay, 
+                    () => { // onContinue
+                        this.previousPhase = GamePhase.ORDER;
+                        // --- THIS IS THE FIX ---
+                        // Go directly to Shopping
+                        this.currentPhase = GamePhase.SHOPPING; 
+                        this.renderCurrentPhase();
+                    }
+                );
+                break;
             case GamePhase.SHOPPING:
                 this.renderShoppingPhase();
                 break;
+            
+            case GamePhase.RECIPE_BOOK:
+                new RecipeBookScreen(
+                    this.stage,
+                    this.layer,
+                    this.player.ingredients,
+                    () => { // onClose
+                        // --- THIS IS THE FIX ---
+                        // Go back to whatever screen you were on (Shopping)
+                        this.currentPhase = this.previousPhase;
+                        this.renderCurrentPhase();
+                    }
+                );
+                break;
+            
             case GamePhase.BAKING:
                 this.renderBakingPhase();
                 break;
@@ -139,7 +164,6 @@ export class GameManager {
     }
 
     private renderShoppingPhase(): void {
-        // Reset daily tracking
         this.daySales = 0;
         this.dayExpenses = 0;
         
@@ -149,20 +173,29 @@ export class GameManager {
             this.player.funds,
             this.player.currentDay,
             (purchases, totalCost) => {
+                // onPurchaseComplete callback
                 this.player.funds -= totalCost;
-                this.dayExpenses += totalCost;  // Track expenses
+                this.dayExpenses += totalCost;
                 
                 purchases.forEach((qty, name) => {
                     const current = this.player.ingredients.get(name) || 0;
                     this.player.ingredients.set(name, current + qty);
                 });
                 
+                this.previousPhase = GamePhase.SHOPPING;
                 if (this.canMakeCookies()) {
                     this.currentPhase = GamePhase.BAKING;
                 } else {
-                    alert('Not enough ingredients to bake!');
+                    alert('You don\'t have enough ingredients to make even one cookie! Go wash dishes.');
                     this.currentPhase = GamePhase.CLEANING;
                 }
+                this.renderCurrentPhase();
+            },
+            // --- THIS IS THE FIX ---
+            // Add the onViewRecipe callback
+            () => { // onViewRecipe
+                this.previousPhase = GamePhase.SHOPPING;
+                this.currentPhase = GamePhase.RECIPE_BOOK;
                 this.renderCurrentPhase();
             }
         );
@@ -174,42 +207,41 @@ export class GameManager {
             this.currentMinigame = null;
         }
 
-        const cookiesMade = result.correctAnswers;
+        const cookiesMade = result.correctAnswers; 
         const revenue = cookiesMade * this.config.cookiePrice;
         
         this.player.funds += revenue;
-        this.daySales += revenue;  // Track sales
+        this.daySales += revenue;
         this.player.dishesToClean = cookiesMade;
         
+        this.previousPhase = GamePhase.BAKING;
         this.currentPhase = GamePhase.CLEANING;
         this.renderCurrentPhase();
     }
 
     private canMakeCookies(): boolean {
-    const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
-    return ingredientNames.every(name => (this.player.ingredients.get(name) || 0) > 0);
-}
+        let canMake = true;
+        this.cookieRecipe.forEach((needed, ingredient) => {
+            if ((this.player.ingredients.get(ingredient) || 0) < needed) {
+                canMake = false;
+            }
+        });
+        return canMake;
+    }
 
     private canMakeOneCookie(): boolean {
-        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
-        
-        // Check if we have at least 1 of each
-        const hasIngredients = ingredientNames.every(name => 
-            (this.player.ingredients.get(name) || 0) >= 1
-        );
+        const hasIngredients = this.canMakeCookies();
         
         if (hasIngredients) {
-            // Consume 1 of each ingredient immediately
-            ingredientNames.forEach(name => {
-                const current = this.player.ingredients.get(name) || 0;
-                this.player.ingredients.set(name, current - 1);
+            this.cookieRecipe.forEach((needed, ingredient) => {
+                const current = this.player.ingredients.get(ingredient) || 0;
+                this.player.ingredients.set(ingredient, current - needed);
             });
             return true;
         }
         
         return false;
     }
-
 
     private renderBakingPhase(): void {
         this.layer.destroyChildren();
@@ -222,12 +254,9 @@ export class GameManager {
             this.stage,
             this.layer,
             (result) => this.onBakingComplete(result),
-            () => this.canMakeOneCookie()  // Pass the check function
+            () => this.canMakeOneCookie()
         );
     }
-
-
-
 
     private onCleaningComplete(result: MinigameResult): void {
         if (this.currentCleaningMinigame) {
@@ -240,38 +269,37 @@ export class GameManager {
         if (dishesNotCleaned > 0) {
             const penalty = dishesNotCleaned * 10;
             this.player.funds -= penalty;
-            this.dayExpenses += penalty;  // Track penalty as expense
+            this.dayExpenses += penalty;
         }
 
         this.player.currentDay++;
         
-        // Go to day summary instead of checking win/loss
+        this.previousPhase = GamePhase.CLEANING;
         this.currentPhase = GamePhase.DAY_SUMMARY;
         this.renderCurrentPhase();
     }
 
-        private renderDaySummaryPhase(): void {
+    private renderDaySummaryPhase(): void {
         new DaySummaryScreen(
             this.stage,
             this.layer,
-            this.player.currentDay - 1,  // Show the day that just ended
+            this.player.currentDay - 1,
             this.daySales,
             this.dayExpenses,
             this.player.funds,
             () => {
-                // Check win/loss after summary
+                this.previousPhase = GamePhase.DAY_SUMMARY;
                 if (this.player.funds >= this.config.winThreshold) {
                     this.currentPhase = GamePhase.GAME_OVER;
                 } else if (this.player.funds <= this.config.bankruptcyThreshold) {
                     this.currentPhase = GamePhase.GAME_OVER;
                 } else {
-                    this.currentPhase = GamePhase.ORDER;  // Next day
+                    this.currentPhase = GamePhase.ORDER;
                 }
                 this.renderCurrentPhase();
             }
         );
     }
-
 
     private renderCleaningPhase(): void {
         this.layer.destroyChildren();
@@ -283,7 +311,7 @@ export class GameManager {
         this.currentCleaningMinigame = new CleaningMinigame(
             this.stage,
             this.layer,
-            this.player.dishesToClean,  // Pass dishes count
+            this.player.dishesToClean,
             (result) => this.onCleaningComplete(result)
         );
     }
@@ -312,14 +340,12 @@ export class GameManager {
 
     private createButton(x: number, y: number, text: string, onClick: () => void) {
         const group = new Konva.Group({ x, y });
-
         const rect = new Konva.Rect({
             width: 200,
             height: 50,
             fill: '#4CAF50',
             cornerRadius: 5
         });
-
         const label = new Konva.Text({
             width: 200,
             height: 50,
@@ -329,24 +355,19 @@ export class GameManager {
             align: 'center',
             verticalAlign: 'middle'
         });
-
         group.add(rect);
         group.add(label);
-
         group.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             rect.fill('#45a049');
             this.layer.draw();
         });
-
         group.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
             rect.fill('#4CAF50');
             this.layer.draw();
         });
-
         group.on('click', onClick);
-
         return { group, rect, label };
     }
 }
