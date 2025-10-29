@@ -14,10 +14,13 @@ npm run dev
 
 ## Feature addition
 
+- Added images so that designer can work on it (background1.jpg, )
 
 ## Feature improvement
 
 - Made everything responsive so that it works across display size (interoperability)
+
+
 
 
 ## What needs improvement

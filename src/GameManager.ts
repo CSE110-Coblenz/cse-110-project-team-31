@@ -11,6 +11,7 @@ export class GameManager {
     private player: PlayerState;
     private config = ConfigManager.getInstance().getConfig();
     private currentMinigame: BakingMinigame | null = null;
+    private backgroundImage: Konva.Image | null = null;
 
     constructor(container: HTMLDivElement) {
         this.stage = new Konva.Stage({
@@ -30,12 +31,38 @@ export class GameManager {
             maxBreadCapacity: this.config.maxBreadCapacity,
             currentDay: 1
         };
+        
+        this.loadBackground();
+        
+    }
 
+        private loadBackground(): void {
+            // function for loading background 
+        const imageObj = new Image();
+        imageObj.onload = () => {
+            this.backgroundImage = new Konva.Image({
+                x: 0,
+                y: 0,
+                image: imageObj,
+                width: this.stage.width(),
+                height: this.stage.height(),
+                opacity: 0.3
+            });
+            this.renderCurrentPhase();
+        };
+        imageObj.onerror = () => {
+        console.error('Failed to load background image');
         this.renderCurrentPhase();
+    };
+        imageObj.src = '/background1.jpg';
     }
 
     private renderCurrentPhase(): void {
         this.layer.destroyChildren();
+
+        if (this.backgroundImage) {
+            this.layer.add(this.backgroundImage);
+        }
 
         switch (this.currentPhase) {
             case GamePhase.SHOPPING:
