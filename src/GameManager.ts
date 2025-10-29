@@ -7,6 +7,7 @@ import { HowToPlayScreen } from './HowToPlayScreen';
 import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
 import { DaySummaryScreen } from './DaySummaryScreen';
+import { LoginScreen } from './LoginScreen'; 
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -31,15 +32,16 @@ export class GameManager {
         this.stage.add(this.layer);
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.currentPhase = GamePhase.LOGIN;
         this.player = {
-        funds: this.config.startingFunds,
-        ingredients: new Map<string, number>(),
-        breadInventory: [],
-        maxBreadCapacity: this.config.maxBreadCapacity,
-        currentDay: 1,
-        dishesToClean: 0  // Add this
-    };
+            username: '', // <-- Initialize the new username property
+            funds: this.config.startingFunds,
+            ingredients: new Map<string, number>(),
+            breadInventory: [],
+            maxBreadCapacity: this.config.maxBreadCapacity,
+            currentDay: 1,
+            dishesToClean: 0
+        };
             
         window.addEventListener('resize', () => {
         this.handleResize(container);
@@ -94,6 +96,16 @@ export class GameManager {
         }
 
         switch (this.currentPhase) {
+            // --- THIS IS THE MISSING PART ---
+            case GamePhase.LOGIN:
+                new LoginScreen(this.stage, this.layer, (username) => {
+                    this.player.username = username; // Save the username
+                    this.currentPhase = GamePhase.HOW_TO_PLAY; // Go to the tutorial next
+                    this.renderCurrentPhase(); // Re-render the new phase
+                });
+                break;
+            // --- END OF MISSING PART ---
+
             case GamePhase.HOW_TO_PLAY:  
             new HowToPlayScreen(this.stage, this.layer, () => {
                 this.currentPhase = GamePhase.ORDER;
