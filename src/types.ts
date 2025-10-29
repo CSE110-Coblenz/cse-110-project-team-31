@@ -8,14 +8,19 @@ export enum GamePhase {
     GAME_OVER
 }
 
+export interface Ingredient {
+    name: string;
+    price: number;
+    quantity: number;
+}
+
 export interface PlayerState {
     funds: number;
-    flourInventory: number;
+    ingredients: Map<string, number>;  // Changed from flourInventory
     breadInventory: Bread[];
     maxBreadCapacity: number;
     currentDay: number;
 }
-
 export interface Bread {
     quality: number; // 0-100
     quantity: number;

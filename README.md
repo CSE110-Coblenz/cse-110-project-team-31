@@ -5,16 +5,32 @@
 
 # Oct 28, 2025
 
+
+## How to install from git
+
+git clone 
+npm install konva
+npm install --save-dev typescript vite
+
+(needed cause node_modules is not uploaded to git)
+
 ## How to run
 
 npm run dev
+
+## Notice
+
+- Cookie recipe is currently set to 1 for every ingredients (needs 1 unit of all ingredients)
+- Ingredients needed for cookie is flour, butter, sugar, chocolate chip, baking soda as we have discussed
 
 ## Bug Fixes
 
 
 ## Feature addition
 
-- Added images so that designer can work on it (background1.jpg, )
+- Added images so that designer can work on it (background1.jpg, owl.png, order.png)
+
+- Added How to Play screen
 
 ## Feature improvement
 
@@ -25,7 +41,25 @@ npm run dev
 
 ## What needs improvement
 
-- Need to deal with really small display situation 
+- Need to deal with really small display situation. Currently focused on laptop+ display size.
+
+- Add help button. (Need to discuss with the team on what exactly will the help button on each screen will do)
+
+- Need to add database to persist the user
+
+- Need to add login page. 
+
+- Need to add audio (thinking of heoric polonaise for victory screen and funeral march for the loss screen)
+
+- Need to add Cookie recipe screen 
+
+- Talkinb bubble for the owl on the Order screen 
+
+- The size and placement of the images are out of place for Order Screen 
+
+- Need to fix text getting clipped for how to play screen 
+
+- Need some clarification from the team on Cash: $ Customer demand: buy ingredients just start screen 
 
 
 ## Backlog 

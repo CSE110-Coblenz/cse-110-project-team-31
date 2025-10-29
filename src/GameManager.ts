@@ -5,6 +5,7 @@ import { BakingMinigame } from './BakingMinigame';
 import { CleaningMinigame } from './CleaningMinigame';
 import { HowToPlayScreen } from './HowToPlayScreen';
 import { OrderScreen } from './OrderScreen';
+import { ShoppingScreen } from './ShoppingScreen';
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -29,12 +30,12 @@ export class GameManager {
         this.currentPhase = GamePhase.HOW_TO_PLAY;
         this.player = {
             funds: this.config.startingFunds,
-            flourInventory: 0,
+            ingredients: new Map<string, number>(),  // Changed
             breadInventory: [],
             maxBreadCapacity: this.config.maxBreadCapacity,
             currentDay: 1
         };
-        
+            
         window.addEventListener('resize', () => {
         this.handleResize(container);
         });
@@ -121,56 +122,24 @@ export class GameManager {
     }
 
     private renderShoppingPhase(): void {
-        // Title
-        const stageWidth = this.stage.width();
-        const stageHeight = this.stage.height();
-
-        const title = new Konva.Text({
-            x: stageWidth * 0.05,
-            y: stageHeight * 0.05,
-            text: `Day ${this.player.currentDay} - Shopping Phase`,
-            fontSize: 30,
-            fill: 'black'
-        });
-        this.layer.add(title);
-
-        // Player info
-        const info = new Konva.Text({
-            x: stageWidth * 0.05,
-            y: stageHeight * 0.12,
-            text: `Funds: $${this.player.funds.toFixed(2)}\nFlour: ${this.player.flourInventory} units\nBread Capacity: ${this.player.maxBreadCapacity} loaves`,
-            fontSize: 20,
-            fill: 'black'
-        });
-        this.layer.add(info);
-
-        // Flour price (random)
-        const flourPrice = Math.floor(Math.random() * 
-            (this.config.flourPriceMax - this.config.flourPriceMin + 1)) + 
-            this.config.flourPriceMin;
-
-        const priceText = new Konva.Text({
-            x: 50,
-            y: 200,
-            text: `Flour Price: $${flourPrice}/unit`,
-            fontSize: 24,
-            fill: 'green'
-        });
-        this.layer.add(priceText);
-
-        // Buy button
-        const buyButton = this.createButton(50, 300, 'Buy 10 Flour', () => {
-            const cost = flourPrice * 10;
-            if (this.player.funds >= cost) {
-                this.player.funds -= cost;
-                this.player.flourInventory += 10;
+        new ShoppingScreen(
+            this.stage,
+            this.layer,
+            this.player.funds,
+            this.player.currentDay,
+            (purchases, totalCost) => {
+                this.player.funds -= totalCost;
+                
+                // Add purchased ingredients to inventory
+                purchases.forEach((qty, name) => {
+                    const current = this.player.ingredients.get(name) || 0;
+                    this.player.ingredients.set(name, current + qty);
+                });
+                
                 this.currentPhase = GamePhase.BAKING;
                 this.renderCurrentPhase();
-            } else {
-                alert('Not enough funds!');
             }
-        });
-        this.layer.add(buyButton.group);
+        );
     }
 
     private onBakingComplete(result: MinigameResult): void {
