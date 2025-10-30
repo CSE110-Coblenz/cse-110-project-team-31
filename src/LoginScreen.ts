@@ -25,17 +25,23 @@ export class LoginScreen {
         const stageHeight = this.stage.height();
 
         // Title
-        const title = new Konva.Text({
-            x: 0,
-            y: stageHeight * 0.2,
-            width: stageWidth,
-            text: 'COOKIE TRAILER TYCOON',
-            fontSize: Math.min(stageWidth * 0.05, 60),
-            fontStyle: 'bold',
-            fill: '#003049', // Color from your palette
-            align: 'center'
-        });
-        this.layer.add(title);
+        const titleImageObj = new Image();
+        titleImageObj.onload = () => {
+            const ascpectRatio = titleImageObj.width / titleImageObj.height;
+            const fixedWidth = 400;
+            const fixedHeight = fixedWidth / ascpectRatio;
+
+            const titleImage = new Konva.Image({
+                x: (stageWidth - stageWidth * 0.5) / 2,
+                y: stageHeight * 0.15,
+                image: titleImageObj,
+                width: fixedWidth,
+                height: fixedHeight
+            });
+            this.layer.add(titleImage);
+            this.layer.draw();
+        };
+        titleImageObj.src = '/title-logo.png'
 
         // Subtitle
         const subtitle = new Konva.Text({

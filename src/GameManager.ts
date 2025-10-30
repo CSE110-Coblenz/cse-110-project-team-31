@@ -18,6 +18,7 @@ export class GameManager {
     private currentMinigame: BakingMinigame | null = null;
     private currentCleaningMinigame: CleaningMinigame | null = null; 
     private backgroundImage: Konva.Image | null = null;
+    private loginBackgroundImage: Konva.Image | null = null;
     private daySales: number = 0;
     private dayExpenses: number = 0;
 
@@ -48,9 +49,9 @@ export class GameManager {
         });
 
         this.loadBackground();
+        this.loadLoginBackground();
         
     }
-
 
         private handleResize(container: HTMLDivElement): void {
             this.stage.width(container.offsetWidth);
@@ -60,6 +61,11 @@ export class GameManager {
             if (this.backgroundImage) {
                 this.backgroundImage.width(this.stage.width());
                 this.backgroundImage.height(this.stage.height());
+            }
+
+            if (this.loginBackgroundImage) {
+                this.loginBackgroundImage.width(this.stage.width());
+                this.loginBackgroundImage.height(this.stage.height());
             }
             
             // Re-render current phase
@@ -76,22 +82,50 @@ export class GameManager {
                 y: 0,
                 image: imageObj,
                 width: this.stage.width(),
-                height: this.stage.height(),
-                opacity: 0.3
+                height: this.stage.height()
             });
-            this.renderCurrentPhase();
+            if (this.currentPhase !== GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
         };
         imageObj.onerror = () => {
-        console.error('Failed to load background image');
-        this.renderCurrentPhase();
-    };
-        imageObj.src = '/background1.jpg';
+            console.error('Failed to load background image');
+            if (this.currentPhase !== GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.src = '/background1.png';
+    }
+
+    private loadLoginBackground(): void {
+        const imageObj = new Image();
+        imageObj.onload = () => {
+            this.loginBackgroundImage = new Konva.Image({
+                x: 0,
+                y: 0,
+                image: imageObj,
+                width: this.stage.width(),
+                height: this.stage.height()
+            });
+            if (this.currentPhase === GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.onerror = () => {
+            console.error('Failed to load login background image');
+            if (this.currentPhase === GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.src = '/login-background.png';
     }
 
     private renderCurrentPhase(): void {
         this.layer.destroyChildren();
 
-        if (this.backgroundImage) {
+        if (this.currentPhase === GamePhase.LOGIN && this.loginBackgroundImage) {
+            this.layer.add(this.loginBackgroundImage);
+        } else if (this.backgroundImage) {
             this.layer.add(this.backgroundImage);
         }
 
