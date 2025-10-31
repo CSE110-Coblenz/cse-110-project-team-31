@@ -4,13 +4,14 @@ interface IngredientItem {
     name: string;
     price: number;
     inputValue: string;
+    unit: string; // <-- ADDED UNIT
 }
 
 export class ShoppingScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onPurchaseComplete: (purchases: Map<string, number>, totalCost: number) => void;
-    private onViewRecipe: () => void; // <-- ADDED THIS
+    private onViewRecipe: () => void; 
     
     private currentFunds: number;
     private currentDay: number;
@@ -20,12 +21,13 @@ export class ShoppingScreen {
     private cursor: Konva.Rect | null = null;
     private cursorInterval: number | null = null;
     
+    // --- MODIFIED: New prices and units ---
     private ingredients: IngredientItem[] = [
-        { name: 'Flour', price: 1, inputValue: '0' },
-        { name: 'Sugar', price: 3, inputValue: '0' },
-        { name: 'Butter', price: 2, inputValue: '0' },
-        { name: 'Chocolate', price: 4, inputValue: '0' },
-        { name: 'Baking Soda', price: 5, inputValue: '0' }
+        { name: 'Flour', price: 0.5, inputValue: '0', unit: 'cup' },
+        { name: 'Sugar', price: 0.75, inputValue: '0', unit: 'cup' },
+        { name: 'Butter', price: 0.25, inputValue: '0', unit: 'tbsp' },
+        { name: 'Chocolate', price: 3, inputValue: '0', unit: 'cup' },
+        { name: 'Baking Soda', price: 0.5, inputValue: '0', unit: 'tsp' }
     ];
     
     private inputTexts: Map<string, Konva.Text> = new Map();
@@ -38,14 +40,14 @@ export class ShoppingScreen {
         currentFunds: number,
         currentDay: number,
         onPurchaseComplete: (purchases: Map<string, number>, totalCost: number) => void,
-        onViewRecipe: () => void // <-- ADDED THIS
+        onViewRecipe: () => void 
     ) {
         this.stage = stage;
         this.layer = layer;
         this.currentFunds = currentFunds;
         this.currentDay = currentDay;
         this.onPurchaseComplete = onPurchaseComplete;
-        this.onViewRecipe = onViewRecipe; // <-- ADDED THIS
+        this.onViewRecipe = onViewRecipe; 
         this.keyboardHandler = this.handleKeyPress.bind(this);
         this.setupUI();
         this.setupKeyboardInput();
@@ -98,14 +100,12 @@ export class ShoppingScreen {
         // Purchase button
         this.createPurchaseButton(stageWidth, currentY + stageHeight * 0.1);
         
-        // --- ADDED THIS ---
         // Add "View Recipe" button to the top right
         this.createViewRecipeButton(stageWidth, stageHeight);
 
         this.layer.draw();
     }
     
-    // --- ADDED THIS FUNCTION ---
     private createViewRecipeButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.2, 200);
         const buttonHeight = Math.min(stageHeight * 0.07, 50);
@@ -135,9 +135,7 @@ export class ShoppingScreen {
 
         buttonGroup.add(rect);
         buttonGroup.add(text);
-
-        // Attach events to the rect itself so the hitbox exactly matches the visible button
-        // and avoid the group from capturing a larger area.
+        
         text.listening(false); // make text ignore pointer events
 
         rect.on('click', () => {
@@ -158,17 +156,17 @@ export class ShoppingScreen {
         this.layer.add(buttonGroup);
     }
 
-    // ... (All other functions remain the same) ...
-    
+    // --- MODIFIED: To show new price and unit ---
     private createIngredientRow(stageWidth: number, y: number, ingredient: IngredientItem): void {
         const label = new Konva.Text({
             x: stageWidth * 0.05,
             y: y,
-            text: `${ingredient.name} - $${ingredient.price} each`,
+            text: `${ingredient.name} - $${ingredient.price.toFixed(2)} per ${ingredient.unit}`,
             fontSize: Math.min(stageWidth * 0.02, 24),
             fill: 'black'
         });
         this.layer.add(label);
+        
         const inputBox = new Konva.Rect({
             x: stageWidth * 0.5,
             y: y - 5,
@@ -180,6 +178,7 @@ export class ShoppingScreen {
             cornerRadius: 5
         });
         this.layer.add(inputBox);
+        
         const inputText = new Konva.Text({
             x: stageWidth * 0.5 + 10,
             y: y + 5,
@@ -189,7 +188,9 @@ export class ShoppingScreen {
             width: stageWidth * 0.15 - 20
         });
         this.layer.add(inputText);
+        
         this.inputTexts.set(ingredient.name, inputText);
+        
         inputBox.on('click', () => {
             this.focusInput(ingredient.name, inputBox, inputText);
         });

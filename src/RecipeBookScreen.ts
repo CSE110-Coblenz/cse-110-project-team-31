@@ -6,13 +6,13 @@ export class RecipeBookScreen {
     private onClose: () => void;
     private ingredients: Map<string, number>;
 
-    // This is your recipe for ONE cookie
+    // --- MODIFIED: New Recipe ---
     private recipe: Map<string, number> = new Map([
         ['Flour', 3],
         ['Sugar', 1],
-        ['Butter', 1],
+        ['Butter', 8],
         ['Chocolate', 1],
-        ['Baking Soda', 1]
+        ['Baking Soda', 2]
     ]);
 
     constructor(
@@ -71,12 +71,12 @@ export class RecipeBookScreen {
         });
         this.layer.add(subHeader);
         
-        // Column Headers
+        // --- MODIFIED: Column Headers ---
         const header = new Konva.Text({
             x: stageWidth * 0.15,
             y: stageHeight * 0.30,
             width: stageWidth * 0.7,
-            text: 'INGREDIENT       NEEDED       YOU HAVE',
+            text: 'INGREDIENT          NEEDED       YOU HAVE',
             fontSize: Math.min(stageWidth * 0.02, 22),
             fontStyle: 'bold',
             fill: '#333',
@@ -86,15 +86,23 @@ export class RecipeBookScreen {
 
         let currentY = stageHeight * 0.36;
 
-        // Loop through recipe to display
+        // --- MODIFIED: Loop to display units ---
         this.recipe.forEach((needed, ingredient) => {
             const has = this.ingredients.get(ingredient) || 0;
+
+            // Add units to the ingredient name for display
+            let ingredientDisplay = ingredient;
+            if (ingredient === 'Flour') ingredientDisplay = 'Flour (cups)';
+            else if (ingredient === 'Sugar') ingredientDisplay = 'Sugar (cups)';
+            else if (ingredient === 'Butter') ingredientDisplay = 'Butter (tbsp)';
+            else if (ingredient === 'Chocolate') ingredientDisplay = 'Chocolate (cups)';
+            else if (ingredient === 'Baking Soda') ingredientDisplay = 'Baking Soda (tsp)';
 
             const line = new Konva.Text({
                 x: stageWidth * 0.15,
                 y: currentY,
                 width: stageWidth * 0.7,
-                text: `${ingredient.padEnd(16)} ${String(needed).padStart(8)} ${String(has).padStart(12)}`,
+                text: `${ingredientDisplay.padEnd(20)} ${String(needed).padStart(5)} ${String(has).padStart(12)}`,
                 fontSize: Math.min(stageWidth * 0.02, 22),
                 fill: 'black',
                 fontFamily: 'monospace'
@@ -108,7 +116,6 @@ export class RecipeBookScreen {
         this.layer.draw();
     }
 
-    // --- RENAMED and MODIFIED function ---
     private createBackButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
@@ -121,14 +128,14 @@ export class RecipeBookScreen {
         const rect = new Konva.Rect({
             width: buttonWidth,
             height: buttonHeight,
-            fill: '#d62828', // <-- Red "back" color
+            fill: '#d62828', // Red "back" color
             cornerRadius: 10
         });
 
         const text = new Konva.Text({
             width: buttonWidth,
             height: buttonHeight,
-            text: 'BACK', // <-- Changed text
+            text: 'BACK', // Changed text
             fontSize: Math.min(stageWidth * 0.022, 28),
             fill: 'white',
             align: 'center',

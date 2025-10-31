@@ -3,20 +3,23 @@ import Konva from 'konva';
 export class OrderScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
-    private onContinue: () => void;
-    // Removed onViewRecipe callback
+    private onContinue: (totalDemand: number) => void; // <-- MODIFIED
     private currentDay: number;
+    private reputation: number; 
+    private totalDemand: number = 0; // <-- ADDED THIS
 
+    // --- MODIFIED CONSTRUCTOR ---
     constructor(
         stage: Konva.Stage, 
         layer: Konva.Layer, 
         currentDay: number, 
-        onContinue: () => void
-        // Removed onViewRecipe callback
+        reputation: number, 
+        onContinue: (totalDemand: number) => void // <-- MODIFIED
     ) {
         this.stage = stage;
         this.layer = layer;
         this.currentDay = currentDay;
+        this.reputation = reputation; 
         this.onContinue = onContinue;
         this.setupUI();
     }
@@ -25,7 +28,6 @@ export class OrderScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        // Title (Leave as is)
         const title = new Konva.Text({
             x: stageWidth * 0.1,
             y: stageHeight * 0.1,
@@ -37,13 +39,10 @@ export class OrderScreen {
         });
         this.layer.add(title);
 
-        // Load images - Buttons will be created inside these load functions now
         this.loadOwlImage(stageWidth, stageHeight);
         this.loadOrderPlaceholder(stageWidth, stageHeight); 
 
-        // --- REMOVED Button creation calls from here ---
-
-        this.layer.draw(); // Initial draw without buttons
+        this.layer.draw(); 
     }
 
     private loadOwlImage(stageWidth: number, stageHeight: number): void {
@@ -51,7 +50,7 @@ export class OrderScreen {
         imageObj.onload = () => {
             const owl = new Konva.Image({
                 x: stageWidth * 0.05,
-                y: stageHeight * 0.4 - (stageWidth * 0.25 / 2), // Center vertically a bit more
+                y: stageHeight * 0.4 - (stageWidth * 0.25 / 2), 
                 image: imageObj,
                 width: stageWidth * 0.25,
                 height: stageWidth * 0.25
@@ -66,15 +65,9 @@ export class OrderScreen {
         const imageObj = new Image();
         
         const createContentAndButtons = () => {
-            // Create text content first
             this.createOrderText(stageWidth, stageHeight);
-            
-            // --- MOVED Button creation HERE ---
-            // Create buttons AFTER the placeholder image/rect is added
             this.createContinueButton(stageWidth, stageHeight); 
-            // We removed the recipe button from this screen
-            
-            this.layer.batchDraw(); // Use batchDraw for efficiency
+            this.layer.batchDraw();
         };
 
         imageObj.onload = () => {
@@ -86,40 +79,35 @@ export class OrderScreen {
                 height: stageHeight * 0.7
             });
             this.layer.add(placeholder);
-            createContentAndButtons(); // Create text and buttons on top
+            createContentAndButtons(); 
         };
         imageObj.onerror = () => {
-            // Fallback rectangle if image fails
             const fallbackRect = new Konva.Rect({
                 x: stageWidth * 0.45,
                 y: stageHeight * 0.15,
                 width: stageWidth * 0.45,
                 height: stageHeight * 0.7,
-                fill: '#FFF8DC', // Use a slightly parchment-like color
+                fill: '#FFF8DC', 
                 stroke: '#ccc',
                 strokeWidth: 2,
-                cornerRadius: 10 // Add slight rounding
+                cornerRadius: 10 
             });
             this.layer.add(fallbackRect);
-            createContentAndButtons(); // Create text and buttons on top
+            createContentAndButtons(); 
         };
         imageObj.src = '/order.png';
     }
 
 
     private createOrderText(stageWidth: number, stageHeight: number): void {
-        // Position relative to the order paper (assuming it starts at x=0.45, y=0.15)
         const paperX = stageWidth * 0.45;
         const paperY = stageHeight * 0.15;
         const paperWidth = stageWidth * 0.45;
-        //const paperHeight = stageHeight * 0.7; // Not needed directly
-
-        const textPadding = paperWidth * 0.05; // Padding inside the paper
+        const textPadding = paperWidth * 0.05; 
         const textWidth = paperWidth - (textPadding * 2);
         
-        let currentY = paperY + stageHeight * 0.03; // Start text lower
+        let currentY = paperY + stageHeight * 0.03; 
 
-        // Title: COOKIE TRAILER TYCOON
         const gameTitle = new Konva.Text({
             x: paperX + textPadding,
             y: currentY,
@@ -133,7 +121,6 @@ export class OrderScreen {
         this.layer.add(gameTitle);
         currentY += stageHeight * 0.06;
 
-        // TODAY'S ORDERS
         const ordersTitle = new Konva.Text({
             x: paperX + textPadding,
             y: currentY,
@@ -146,7 +133,6 @@ export class OrderScreen {
         this.layer.add(ordersTitle);
         currentY += stageHeight * 0.04;
 
-        // DAY X
         const dayText = new Konva.Text({
             x: paperX + textPadding,
             y: currentY,
@@ -159,7 +145,6 @@ export class OrderScreen {
         this.layer.add(dayText);
         currentY += stageHeight * 0.04;
 
-        // Separator line
         const separator = new Konva.Text({
             x: paperX + textPadding,
             y: currentY,
@@ -172,33 +157,34 @@ export class OrderScreen {
         this.layer.add(separator);
         currentY += stageHeight * 0.05;
 
-        // Generate 3 random customer orders
-        let totalCookies = 0;
-        for (let i = 1; i <= 3; i++) {
-            const cookieCount = Math.floor(Math.random() * 50) + 50; // 50-99
-            totalCookies += cookieCount;
+        // --- Generate random customer orders based on reputation ---
+        this.totalDemand = 0; // Reset total
+        const numCustomers = Math.max(1, Math.floor((Math.random() * 6 + 5) * this.reputation)); 
+        
+        for (let i = 1; i <= numCustomers; i++) {
+            const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation)); 
+            this.totalDemand += cookieCount; // <-- Store total
 
             const customerOrder = new Konva.Text({
-                x: paperX + textPadding + (textWidth * 0.05), // Indent slightly
+                x: paperX + textPadding + (textWidth * 0.05), 
                 y: currentY,
-                width: textWidth * 0.9, // Adjust width for indentation
+                width: textWidth * 0.9, 
                 text: `${i}. CUSTOMER ${i}                    ${cookieCount} COOKIES`,
-                fontSize: Math.min(stageWidth * 0.014, 16),
+                fontSize: Math.min(stageWidth * 0.013, 15), 
                 fill: 'black',
-                fontFamily: 'monospace' // Use monospace for better alignment
+                fontFamily: 'monospace' 
             });
             this.layer.add(customerOrder);
-            currentY += stageHeight * 0.06;
+            currentY += stageHeight * 0.045; 
         }
 
         currentY += stageHeight * 0.02;
 
-        // Total
         const total = new Konva.Text({
             x: paperX + textPadding,
             y: currentY,
             width: textWidth,
-            text: `TOTAL ........................ ${totalCookies} COOKIES`,
+            text: `TOTAL ........................ ${this.totalDemand} COOKIES`, // <-- Use stored total
             fontSize: Math.min(stageWidth * 0.016, 18),
             fontStyle: 'bold',
             fill: 'black',
@@ -207,6 +193,7 @@ export class OrderScreen {
         this.layer.add(total);
     }
 
+    // --- MODIFIED createContinueButton ---
     private createContinueButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);
@@ -226,13 +213,11 @@ export class OrderScreen {
             shadowOpacity: 0.4,
             shadowOffsetX: 2,
             shadowOffsetY: 2,
-            // --- ADDED HIT FUNCTION ---
             hitFunc: (context, shape) => {
-                // This draws the exact rectangle shape for hit detection
                 context.beginPath();
                 context.rect(0, 0, shape.width(), shape.height());
                 context.closePath();
-                context.fillStrokeShape(shape); // Use the shape's fill/stroke for hit
+                context.fillStrokeShape(shape); 
             }
         });
 
@@ -245,16 +230,17 @@ export class OrderScreen {
             align: 'center',
             verticalAlign: 'middle',
             fontStyle: 'bold',
-            listening: false // Keep this false
+            listening: false 
         });
 
         buttonGroup.add(rect);
         buttonGroup.add(text);
+        
+        // --- MODIFIED: Pass totalDemand on click ---
+        buttonGroup.on('click', () => {
+            this.onContinue(this.totalDemand);
+        }); 
 
-        // Click event can stay on the group
-        buttonGroup.on('click', this.onContinue); 
-
-        // Keep hover effects attached to the visible rect
         rect.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             rect.fill('#45a049');
@@ -269,9 +255,6 @@ export class OrderScreen {
         this.layer.add(buttonGroup);
     }
     
-    // --- REMOVED: createViewRecipeButton() function ---
-
     public cleanup(): void {
-        // No listeners to remove in this version
     }
 }
