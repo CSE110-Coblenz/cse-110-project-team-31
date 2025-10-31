@@ -20,19 +20,21 @@ export class LoginScreen {
         this.setupKeyboardInput();
     }
 
-    private setupUI(): void {
+    private async setupUI(): Promise<void> {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
+
+        await document.fonts.load('24px "Press Start 2P');
 
         // Title
         const titleImageObj = new Image();
         titleImageObj.onload = () => {
             const ascpectRatio = titleImageObj.width / titleImageObj.height;
-            const fixedWidth = 400;
+            const fixedWidth = 600;
             const fixedHeight = fixedWidth / ascpectRatio;
 
             const titleImage = new Konva.Image({
-                x: (stageWidth - stageWidth * 0.5) / 2,
+                x: (stageWidth - fixedWidth) / 2,
                 y: stageHeight * 0.15,
                 image: titleImageObj,
                 width: fixedWidth,
@@ -46,33 +48,36 @@ export class LoginScreen {
         // Subtitle
         const subtitle = new Konva.Text({
             x: 0,
-            y: stageHeight * 0.3,
+            y: stageHeight * 0.4,
             width: stageWidth,
             text: 'Enter your name to begin!',
-            fontSize: Math.min(stageWidth * 0.02, 24),
-            fill: '#d62828', // Color from your palette
+            fontSize: Math.min(stageWidth * 0.025, 24),
+            fontFamily: '"Press Start 2P"',
+            fill: '#ffffff',
+            shadowColor: 'd3d3d3',
+            shadowBlur: 5,
             align: 'center'
         });
         this.layer.add(subtitle);
 
-        // Input box background
+        // Input Box
         const inputBox = new Konva.Rect({
             x: (stageWidth - (stageWidth * 0.4)) / 2,
             y: stageHeight * 0.45,
             width: stageWidth * 0.4,
             height: 60,
             fill: 'white',
-            stroke: '#003049',
+            stroke: '#fcbf49',
             strokeWidth: 4,
-            cornerRadius: 10
         });
         this.layer.add(inputBox);
-
+       
         // Input text
         this.inputText = new Konva.Text({
             x: (stageWidth - (stageWidth * 0.4)) / 2 + 15,
             y: stageHeight * 0.45 + 18,
             text: '',
+            fontFamily: '"Press Start 2P"',
             fontSize: 24,
             fill: 'black',
             width: stageWidth * 0.4 - 30
@@ -113,11 +118,40 @@ export class LoginScreen {
             y: stageHeight * 0.6
         });
 
-        const rect = new Konva.Rect({
+        // Sign board
+        const board = new Konva.Rect({
             width: buttonWidth,
             height: buttonHeight,
-            fill: '#4CAF50',
-            cornerRadius: 10
+            fill: '#a67c52',
+            shadowColor: '#654321',
+            shadowBlur: 8,
+            shadowOffsetY: 3,
+            shadowOpacity: 0.6
+        });
+
+        // Sign "arrow"
+        const arrow = new Konva.Line({
+            points: [
+                buttonWidth, 0, // top right corner
+                buttonWidth + buttonHeight / 2, buttonHeight / 2, // arrow tip
+                buttonWidth, buttonHeight // bottom right corner
+            ],
+            fill: '#a67c52',
+            closed: true,
+            shadowOpacity: 0.5
+        });
+
+        // Sign post
+        const post = new Konva.Rect({
+            x: buttonWidth / 2 - 10, // center under the button
+            y: buttonHeight,         // directly below the button
+            width: 20,
+            height: 150,
+            fill: '#b5895a',
+            shadowColor: '#654321',
+            shadowBlur: 5,
+            shadowOffsetY: 2,
+            shadowOpacity: 0.5
         });
 
         const text = new Konva.Text({
@@ -128,11 +162,14 @@ export class LoginScreen {
             fill: 'white',
             align: 'center',
             verticalAlign: 'middle',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            fontFamily: 'Press Start 2P'
         });
 
-        buttonGroup.add(rect);
+        buttonGroup.add(board);
+        buttonGroup.add(arrow);
         buttonGroup.add(text);
+        buttonGroup.add(post);
 
         buttonGroup.on('click', () => {
             if (this.username.trim() === '') {
@@ -145,17 +182,22 @@ export class LoginScreen {
 
         buttonGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
-            rect.fill('#45a049');
+            board.shadowBlur(20);
+            board.shadowOpacity(0.9);
+            board.shadowColor('#ffdd77');
             this.layer.draw();
         });
 
         buttonGroup.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
-            rect.fill('#4CAF50');
+            board.shadowBlur(8);
+            board.shadowOpacity(0.6);
+            board.shadowColor('#654321');
             this.layer.draw();
         });
 
         this.layer.add(buttonGroup);
+        this.stage.add(this.layer);
     }
 
     private setupKeyboardInput(): void {
