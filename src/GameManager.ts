@@ -7,6 +7,8 @@ import { HowToPlayScreen } from './HowToPlayScreen';
 import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
 import { DaySummaryScreen } from './DaySummaryScreen';
+import {StoryScreen} from './StoryScreen'
+
 
 export class GameManager {
     private stage: Konva.Stage;
@@ -96,13 +98,22 @@ export class GameManager {
         switch (this.currentPhase) {
             case GamePhase.HOW_TO_PLAY:  
             new HowToPlayScreen(this.stage, this.layer, () => {
-                this.currentPhase = GamePhase.ORDER;
+                this.currentPhase = GamePhase.STORY;
                 this.renderCurrentPhase();
             });
             break;
+
+
+            case GamePhase.STORY:
+            new StoryScreen(this.stage, this.layer, () => {
+            this.currentPhase = GamePhase.ORDER;
+            this.renderCurrentPhase();
+            });
+            break;
+
             case GamePhase.ORDER:
             new OrderScreen(this.stage, this.layer, this.player.currentDay, () => {
-                this.currentPhase = GamePhase.SHOPPING;
+                this.currentPhase = GamePhase.STORY;
                 this.renderCurrentPhase();
             });
             break;
