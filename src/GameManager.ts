@@ -7,6 +7,9 @@ import { HowToPlayScreen } from './HowToPlayScreen';
 import { OrderScreen } from './OrderScreen';
 import { ShoppingScreen } from './ShoppingScreen';
 import { DaySummaryScreen } from './DaySummaryScreen';
+import { LoginScreen } from './LoginScreen'; 
+import { VictoryScreen } from './VictoryScreen'; 
+import { LoseScreen } from './LoseScreen';
 import {StoryScreen} from './StoryScreen'
 
 
@@ -19,6 +22,7 @@ export class GameManager {
     private currentMinigame: BakingMinigame | null = null;
     private currentCleaningMinigame: CleaningMinigame | null = null; 
     private backgroundImage: Konva.Image | null = null;
+    private loginBackgroundImage: Konva.Image | null = null;
     private daySales: number = 0;
     private dayExpenses: number = 0;
 
@@ -33,24 +37,25 @@ export class GameManager {
         this.stage.add(this.layer);
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.currentPhase = GamePhase.VICTORY;
         this.player = {
-        funds: this.config.startingFunds,
-        ingredients: new Map<string, number>(),
-        breadInventory: [],
-        maxBreadCapacity: this.config.maxBreadCapacity,
-        currentDay: 1,
-        dishesToClean: 0  // Add this
-    };
+            username: '', // <-- Initialize the new username property
+            funds: this.config.startingFunds,
+            ingredients: new Map<string, number>(),
+            breadInventory: [],
+            maxBreadCapacity: this.config.maxBreadCapacity,
+            currentDay: 1,
+            dishesToClean: 0
+        };
             
         window.addEventListener('resize', () => {
         this.handleResize(container);
         });
 
         this.loadBackground();
+        this.loadLoginBackground();
         
     }
-
 
         private handleResize(container: HTMLDivElement): void {
             this.stage.width(container.offsetWidth);
@@ -60,6 +65,11 @@ export class GameManager {
             if (this.backgroundImage) {
                 this.backgroundImage.width(this.stage.width());
                 this.backgroundImage.height(this.stage.height());
+            }
+
+            if (this.loginBackgroundImage) {
+                this.loginBackgroundImage.width(this.stage.width());
+                this.loginBackgroundImage.height(this.stage.height());
             }
             
             // Re-render current phase
@@ -76,26 +86,64 @@ export class GameManager {
                 y: 0,
                 image: imageObj,
                 width: this.stage.width(),
-                height: this.stage.height(),
-                opacity: 0.3
+                height: this.stage.height()
             });
-            this.renderCurrentPhase();
+            if (this.currentPhase !== GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
         };
         imageObj.onerror = () => {
-        console.error('Failed to load background image');
-        this.renderCurrentPhase();
-    };
-        imageObj.src = '/background1.jpg';
+            console.error('Failed to load background image');
+            if (this.currentPhase !== GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.src = '/background1.png';
+    }
+
+    private loadLoginBackground(): void {
+        const imageObj = new Image();
+        imageObj.onload = () => {
+            this.loginBackgroundImage = new Konva.Image({
+                x: 0,
+                y: 0,
+                image: imageObj,
+                width: this.stage.width(),
+                height: this.stage.height()
+            });
+            if (this.currentPhase === GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.onerror = () => {
+            console.error('Failed to load login background image');
+            if (this.currentPhase === GamePhase.LOGIN) {
+                this.renderCurrentPhase();
+            }
+        };
+        imageObj.src = '/login-background.png';
     }
 
     private renderCurrentPhase(): void {
         this.layer.destroyChildren();
 
-        if (this.backgroundImage) {
+        if (this.currentPhase === GamePhase.LOGIN && this.loginBackgroundImage) {
+            this.layer.add(this.loginBackgroundImage);
+        } else if (this.backgroundImage) {
             this.layer.add(this.backgroundImage);
         }
 
         switch (this.currentPhase) {
+            // --- THIS IS THE MISSING PART ---
+            case GamePhase.LOGIN:
+                new LoginScreen(this.stage, this.layer, (username) => {
+                    this.player.username = username; // Save the username
+                    this.currentPhase = GamePhase.HOW_TO_PLAY; // Go to the tutorial next
+                    this.renderCurrentPhase(); // Re-render the new phase
+                });
+                break;
+            // --- END OF MISSING PART ---
+                
             case GamePhase.HOW_TO_PLAY:  
             new HowToPlayScreen(this.stage, this.layer, () => {
                 this.currentPhase = GamePhase.STORY;
@@ -132,6 +180,13 @@ export class GameManager {
             case GamePhase.GAME_OVER:
                 this.renderGameOverPhase();
                 break;
+            case GamePhase.VICTORY:
+                this.renderVictoryPhase();
+                break;
+            case GamePhase.DEFEAT:
+                this.renderLosePhase();
+                break;
+
         }
 
         this.layer.draw();
@@ -260,9 +315,9 @@ export class GameManager {
             () => {
                 // Check win/loss after summary
                 if (this.player.funds >= this.config.winThreshold) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.VICTORY;
                 } else if (this.player.funds <= this.config.bankruptcyThreshold) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.DEFEAT;
                 } else {
                     this.currentPhase = GamePhase.ORDER;  // Next day
                 }
@@ -271,6 +326,55 @@ export class GameManager {
         );
     }
 
+    private renderVictoryPhase(): void {
+        const victory = new VictoryScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+                victory.cleanup();              // remove victory UI
+                this.resetGame();               // reset money/day/inventory (keep username)
+                this.currentPhase = GamePhase.LOGIN;
+                this.renderCurrentPhase();
+            },
+            onReturnHome: () => {
+                victory.cleanup();
+                this.resetGame();
+                this.currentPhase = GamePhase.HOW_TO_PLAY;  // or ORDER if you want
+                this.renderCurrentPhase();
+            },
+        });
+    }
+
+    private renderLosePhase(): void {
+        const lose = new LoseScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+                lose.cleanup();
+                this.resetGame();                 // 👈 add this
+                this.currentPhase = GamePhase.LOGIN;
+                this.renderCurrentPhase();
+            },
+            onRetry: () => {
+                lose.cleanup();
+                this.resetGame();                 // 👈 keep this
+                this.currentPhase = GamePhase.HOW_TO_PLAY;
+                this.renderCurrentPhase();
+            },
+        });
+    }
+
+    private resetGame(): void {
+        this.player = {
+            username: this.player.username,
+            funds: this.config.startingFunds,
+            ingredients: new Map<string, number>(),
+            breadInventory: [],
+            maxBreadCapacity: this.config.maxBreadCapacity,
+            currentDay: 1,
+            dishesToClean: 0,
+        };
+    }
 
     private renderCleaningPhase(): void {
         this.layer.destroyChildren();
@@ -348,4 +452,6 @@ export class GameManager {
 
         return { group, rect, label };
     }
+
+
 }

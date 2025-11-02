@@ -1,4 +1,5 @@
 export enum GamePhase {
+    LOGIN, // <-- Added this phase
     HOW_TO_PLAY,
     STORY,
     ORDER, 
@@ -7,7 +8,9 @@ export enum GamePhase {
     // SELLING,
     CLEANING,
     DAY_SUMMARY,
-    GAME_OVER
+    GAME_OVER,
+    VICTORY,
+    DEFEAT
 }
 
 export interface Ingredient {
@@ -16,13 +19,15 @@ export interface Ingredient {
     quantity: number;
 }
 
+// This is the single, corrected PlayerState interface
 export interface PlayerState {
+    username: string; // <-- Included from your second definition
     funds: number;
     ingredients: Map<string, number>;
     breadInventory: Bread[];
     maxBreadCapacity: number;
     currentDay: number;
-    dishesToClean: number;  // Add this
+    dishesToClean: number;
 }
 
 export interface Bread {
@@ -49,3 +54,4 @@ export interface MinigameResult {
     totalProblems: number;
     timeRemaining: number;
 }
+
