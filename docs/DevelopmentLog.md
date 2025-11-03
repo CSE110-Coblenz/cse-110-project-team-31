@@ -16,6 +16,9 @@
 **Oct 29, 2025**
 - Succesfully added UI for landing page
 
+**Nov 1, 2025**
+- Succesfully added Losing and Victory Screens
+
 ---
 
 ## Bugs to Fix
