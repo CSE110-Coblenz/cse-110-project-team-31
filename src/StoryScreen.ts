@@ -1,9 +1,9 @@
 import Konva from "konva";
 import { OrderScreen } from "./OrderScreen";
+import { HowToPlayScreen } from "./HowToPlayScreen";
 
 export class StoryScreen {
   constructor(stage: Konva.Stage, layer: Konva.Layer, onNext: () => void) {
-
     const cursorDefault = "default";
     const cursorPointer = "pointer";
 
@@ -27,8 +27,8 @@ export class StoryScreen {
     const textFontSize = 24;
     const textFontFamily = "Tilt Warp";
     const textFontStyle = "bold";
-    const fullText =
-      "Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. [Name], please help the Owl get back on his feet by baking some cookies.";
+    const username = localStorage.getItem("username");
+    const fullText = `Today is a sad day for Owl. He lost his job. Owl is thinking of making cookies from his new home, the trailer park. ${username}, please help the Owl get back on his feet by baking some cookies.`;
 
     // Button
     const buttonX = 513;
@@ -47,7 +47,7 @@ export class StoryScreen {
     const buttonShadowOffsetHover = { x: 2, y: 2 };
     const buttonShadowOpacity = 0.5;
     const buttonCornerRadius = 10;
-    const buttonPadding = 5
+    const buttonPadding = 5;
 
     // Stage default cursor
     stage.container().style.cursor = cursorDefault;
@@ -142,7 +142,7 @@ export class StoryScreen {
 
           layer.add(button);
           layer.draw();
-          
+
           button.on("mouseenter", function () {
             stage.container().style.cursor = cursorPointer;
             const tag = this.getChildren()[0] as Konva.Tag;
@@ -159,10 +159,9 @@ export class StoryScreen {
             layer.draw();
           });
 
-
           button.on("click", () => {
             layer.destroyChildren();
-            const orderScreen = new OrderScreen(stage, layer, 1, () => {
+            const howToPlay = new HowToPlayScreen(stage, layer, () => {
               console.log("Continue clicked");
             });
           });

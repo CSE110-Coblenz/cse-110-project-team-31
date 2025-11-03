@@ -37,7 +37,7 @@ export class GameManager {
         this.stage.add(this.layer);
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.VICTORY;
+        this.currentPhase = GamePhase.LOGIN;
         this.player = {
             username: '', // <-- Initialize the new username property
             funds: this.config.startingFunds,
@@ -138,32 +138,33 @@ export class GameManager {
             case GamePhase.LOGIN:
                 new LoginScreen(this.stage, this.layer, (username) => {
                     this.player.username = username; // Save the username
-                    this.currentPhase = GamePhase.HOW_TO_PLAY; // Go to the tutorial next
+                    this.currentPhase = GamePhase.STORY; // Go to the tutorial next
                     this.renderCurrentPhase(); // Re-render the new phase
                 });
                 break;
             // --- END OF MISSING PART ---
+            
+            case GamePhase.STORY:
+            new StoryScreen(this.stage, this.layer, () => {
+            this.currentPhase = GamePhase.HOW_TO_PLAY;
+            this.renderCurrentPhase();
+            });
+            break;
                 
             case GamePhase.HOW_TO_PLAY:  
             new HowToPlayScreen(this.stage, this.layer, () => {
-                this.currentPhase = GamePhase.STORY;
+                this.currentPhase = GamePhase.ORDER;
                 this.renderCurrentPhase();
             });
             break;
 
-
-            case GamePhase.STORY:
-            new StoryScreen(this.stage, this.layer, () => {
-            this.currentPhase = GamePhase.ORDER;
-            this.renderCurrentPhase();
-            });
-            break;
 
             case GamePhase.ORDER:
             new OrderScreen(this.stage, this.layer, this.player.currentDay, () => {
                 this.currentPhase = GamePhase.STORY;
                 this.renderCurrentPhase();
             });
+
             break;
             case GamePhase.SHOPPING:
                 this.renderShoppingPhase();
