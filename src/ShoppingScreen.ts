@@ -12,6 +12,7 @@ export class ShoppingScreen {
     private onPurchaseComplete: (purchases: Map<string, number>, totalCost: number) => void;
     private currentFunds: number;
     private currentDay: number;
+    private currentIngredients: Map<string, number>;
 
     private focusedInput: string | null = null;
     private focusedInputBox: Konva.Rect | null = null;
@@ -34,12 +35,14 @@ export class ShoppingScreen {
         layer: Konva.Layer, 
         currentFunds: number,
         currentDay: number,
+        currentIngredients: Map<string, number>,
         onPurchaseComplete: (purchases: Map<string, number>, totalCost: number) => void
     ) {
         this.stage = stage;
         this.layer = layer;
         this.currentFunds = currentFunds;
         this.currentDay = currentDay;
+        this.currentIngredients = currentIngredients;
         this.onPurchaseComplete = onPurchaseComplete;
         this.setupUI();
         this.setupKeyboardInput();

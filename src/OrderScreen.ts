@@ -189,42 +189,7 @@ export class OrderScreen {
         this.layer.add(total);
     }
 
-    /*
-    private async loadOrders(stageWidth: number, stageHeight: number): Promise<void> {
-        try {
-            const response = await fetch('/orders.txt');
-            const text = await response.text();
-            
-            const ordersText = new Konva.Text({
-                x: stageWidth * 0.15,
-                y: stageHeight * 0.25,
-                width: stageWidth * 0.7,
-                text: text,
-                fontSize: Math.min(stageWidth * 0.022, 26),
-                fill: 'black',
-                lineHeight: 1.8,
-                wrap: 'word'
-            });
-            
-            this.layer.add(ordersText);
-            this.layer.draw();
-        } catch (error) {
-            console.error('Could not load orders:', error);
-            
-            const fallback = new Konva.Text({
-                x: stageWidth * 0.15,
-                y: stageHeight * 0.3,
-                width: stageWidth * 0.7,
-                text: 'No orders for today!',
-                fontSize: Math.min(stageWidth * 0.025, 30),
-                fill: 'gray',
-                align: 'center'
-            });
-            this.layer.add(fallback);
-            this.layer.draw();
-        }
-    } */
-
+  
     private createContinueButton(stageWidth: number, stageHeight: number): void {
         const buttonWidth = Math.min(stageWidth * 0.25, 300);
         const buttonHeight = Math.min(stageHeight * 0.08, 60);

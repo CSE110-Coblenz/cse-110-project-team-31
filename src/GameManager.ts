@@ -35,7 +35,7 @@ export class GameManager {
         this.stage.add(this.layer);
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.VICTORY;
+        this.currentPhase = GamePhase.LOGIN;
         this.player = {
             username: '', // <-- Initialize the new username property
             funds: this.config.startingFunds,
@@ -186,11 +186,25 @@ export class GameManager {
         this.daySales = 0;
         this.dayExpenses = 0;
         
+        // Check if player can make at least one cookie with current ingredients
+        const canMakeOneCookieNow = this.canPlayerMakeOneCookie();
+        
+        // Check if player can afford to buy ingredients for one cookie
+        const canAffordOneCookie = this.canPlayerAffordOneCookie();
+        
+        // If they can't make a cookie AND can't afford to buy ingredients, they lose
+        if (!canMakeOneCookieNow && !canAffordOneCookie) {
+            this.currentPhase = GamePhase.DEFEAT;
+            this.renderCurrentPhase();
+            return;
+        }
+        
         new ShoppingScreen(
             this.stage,
             this.layer,
             this.player.funds,
             this.player.currentDay,
+            this.player.ingredients,
             (purchases, totalCost) => {
                 this.player.funds -= totalCost;
                 this.dayExpenses += totalCost;  // Track expenses
@@ -440,6 +454,36 @@ export class GameManager {
         group.on('click', onClick);
 
         return { group, rect, label };
+    }
+
+    private canPlayerMakeOneCookie(): boolean {
+        // Check if player has at least 1 of each ingredient for one cookie
+        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
+        return ingredientNames.every(name => (this.player.ingredients.get(name) || 0) >= 1);
+    }
+
+    private canPlayerAffordOneCookie(): boolean {
+        // Check if player has enough funds to buy 1 of each missing ingredient
+        const ingredientNames = ['Flour', 'Butter', 'Sugar', 'Chocolate Chips', 'Baking Soda'];
+        const ingredientPrices = new Map([
+            ['Flour', 1],
+            ['Butter', 2],
+            ['Sugar', 3],
+            ['Chocolate Chips', 4],
+            ['Baking Soda', 5]
+        ]);
+        
+        let totalCostNeeded = 0;
+        
+        ingredientNames.forEach(name => {
+            const currentQty = this.player.ingredients.get(name) || 0;
+            if (currentQty < 1) {
+                // Need to buy at least 1
+                totalCostNeeded += ingredientPrices.get(name) || 0;
+            }
+        });
+        
+        return this.player.funds >= totalCostNeeded;
     }
 
 
