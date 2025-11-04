@@ -194,6 +194,7 @@ export class GameManager {
         
         // If they can't make a cookie AND can't afford to buy ingredients, they lose
         if (!canMakeOneCookieNow && !canAffordOneCookie) {
+            alert('Game Over! You ran out of money to buy the ingredients needed to bake cookies.');
             this.currentPhase = GamePhase.DEFEAT;
             this.renderCurrentPhase();
             return;
