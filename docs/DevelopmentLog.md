@@ -27,6 +27,8 @@
 - Text clipping on “How to Play” screen with long content.  
 - Image sizing and placement issues on Order Screen.  
 - Implement proper Lose Screen trigger conditions.
+- Screen does not resize in Cleaning minigame screen
+- Exit button doesn't appear in cleaning minigame before starting game screen
 
 ---
 
@@ -40,13 +42,10 @@
 
 ## Planned Features
 - Display optimizations.  
-- Help button system.  
-- User database for persistent save data.  
-- Login page implementation.  
-- Audio system and background music.  
-- Cookie recipe dedicated screen.  
+- Help/Info button system.   
+- Exit button system  
+- Audio system and background music.    
 - Owl speech bubble on Order Screen.  
-- Win/Lose screen system.
 
 ---
 
@@ -57,6 +56,9 @@
 - Asynchronous configuration loading from text files.  
 - Real-time ingredient tracking and consumption.  
 - Financial tracking: sales, expenses, profit.
+- Login page implementation.
+- Cookie recipe dedicated screen.
+- Win/Lose screen system.
 
 ---
 
