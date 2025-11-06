@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { MinigameResult } from './types';
 import { ConfigManager } from './config';
+import { ExitButton } from './ui/ExitButton'; 
 
 export class CleaningMinigame {
     private layer: Konva.Layer;
@@ -276,6 +277,12 @@ export class CleaningMinigame {
             fontStyle: 'italic'
         });
         this.minigameUIGroup.add(dirtyDishesText);
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
     }
 
     private generateNewProblem(): void {

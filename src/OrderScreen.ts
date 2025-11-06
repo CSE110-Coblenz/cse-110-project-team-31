@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { ExitButton } from './ui/ExitButton';
 
 export class OrderScreen {
     private layer: Konva.Layer;
@@ -41,6 +42,12 @@ export class OrderScreen {
 
         this.loadOwlImage(stageWidth, stageHeight);
         this.loadOrderPlaceholder(stageWidth, stageHeight); 
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
 
         this.layer.draw(); 
     }

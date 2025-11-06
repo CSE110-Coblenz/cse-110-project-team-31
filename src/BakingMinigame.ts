@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { AnimationPlayer } from './AnimationPlayer'; 
+import { ExitButton } from './ui/ExitButton';
 
 export class BakingMinigame {
     private layer: Konva.Layer;
@@ -162,9 +163,15 @@ export class BakingMinigame {
             width: stageWidth * 0.4
         });
         this.minigameUIGroup.add(instructions);
+
+        //Exit Button
+        const exitButton = new ExitButton(this.stage, this.layer, () => {
+            this.cleanup();
+            window.location.href = '/login.hmtl'; //go to login page
+        });
     }
     
-    // --- THIS METHOD HAS BEEN UPDATED ---
+    // --- THIS IS THE VISUAL FIX ---
     private showPlaySkipChoice(): void {
         if (this.animationPlayer) {
             this.animationPlayer.destroy();
