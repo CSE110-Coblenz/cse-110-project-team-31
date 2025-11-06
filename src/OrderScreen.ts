@@ -29,14 +29,10 @@ export class OrderScreen {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
 
-        const title = new Konva.Text({
-            x: stageWidth * 0.1,
-            y: stageHeight * 0.1,
-            width: stageWidth * 0.8,
-            fontSize: Math.min(stageWidth * 0.045, 54),
-            fontStyle: 'bold',
-            fill: 'black',
-            align: 'center'
+        this.loadOwlImage(stageWidth, stageHeight, () => {
+            // Once owl loads, add receipt + button
+            this.createReceiptGroup(stageWidth, stageHeight);
+            this.createContinueButton(stageWidth, stageHeight);
         });
         this.layer.add(title);
 
@@ -46,158 +42,143 @@ export class OrderScreen {
         //Exit Button
         const exitButton = new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
-            window.location.href = '/login.hmtl'; //go to login page
+            window.location.href = '/login.html'; //go to login page
         });
 
         this.layer.draw(); 
     }
 
-    private loadOwlImage(stageWidth: number, stageHeight: number): void {
+    private loadOwlImage(stageWidth: number, stageHeight: number, onLoad: () => void): void {
         const imageObj = new Image();
         imageObj.onload = () => {
+            const aspectRatio = imageObj.width / imageObj.height;
+            const owlWidth = stageWidth * 0.35;
+            const owlHeight = owlWidth / aspectRatio;
+
             const owl = new Konva.Image({
-                x: stageWidth * 0.05,
-                y: stageHeight * 0.4 - (stageWidth * 0.25 / 2), 
+                x: stageWidth * 0.1,
+                y: stageHeight * 0.6 - (stageWidth * 0.25 / 2), 
                 image: imageObj,
-                width: stageWidth * 0.25,
-                height: stageWidth * 0.25
+                width: owlWidth,
+                height: owlHeight
             });
             this.layer.add(owl);
             this.layer.draw();
+            onLoad();
         };
-        imageObj.src = '/owl.png';
+        imageObj.src = '/order-owl.png';
     }
 
-    private loadOrderPlaceholder(stageWidth: number, stageHeight: number): void {
+    private createReceiptGroup(stageWidth: number, stageHeight: number): void {
         const imageObj = new Image();
-        
-        const createContentAndButtons = () => {
-            this.createOrderText(stageWidth, stageHeight);
-            this.createContinueButton(stageWidth, stageHeight); 
-            this.layer.batchDraw();
-        };
-
         imageObj.onload = () => {
-            const placeholder = new Konva.Image({
-                x: stageWidth * 0.45,
+            const aspectRatio = imageObj.width / imageObj.height;
+            const receiptWidth = stageWidth * 0.3;
+            const receiptHeight = receiptWidth / aspectRatio;
+            const MAX_CUSTOMER_LINES = 7; // <-- NEW HARD LIMIT (TO KEEP FROM EXCEEDING RECEIPT BOUNDS)
+
+            // Scaling constants based on receipt height
+            const V_PAD_HEADER = receiptHeight * 0.05;
+            const V_STEP_ORDER = receiptHeight * 0.035;
+
+            // X-axis constants to keep text in bounds of receipt
+            const X_PAD_LEFT = receiptWidth * 0.1;
+            const X_PAD_RIGHT = receiptWidth * 0.7;
+
+            // Create group to hold receipt and text
+            const receiptGroup = new Konva.Group({
+                x: stageWidth * 0.6,
                 y: stageHeight * 0.15,
+            });
+            
+            // Create receipt image
+            const receipt = new Konva.Image({
                 image: imageObj,
-                width: stageWidth * 0.45,
-                height: stageHeight * 0.7
+                width: receiptWidth,
+                height: receiptHeight
             });
-            this.layer.add(placeholder);
-            createContentAndButtons(); 
-        };
-        imageObj.onerror = () => {
-            const fallbackRect = new Konva.Rect({
-                x: stageWidth * 0.45,
-                y: stageHeight * 0.15,
-                width: stageWidth * 0.45,
-                height: stageHeight * 0.7,
-                fill: '#FFF8DC', 
-                stroke: '#ccc',
-                strokeWidth: 2,
-                cornerRadius: 10 
-            });
-            this.layer.add(fallbackRect);
-            createContentAndButtons(); 
-        };
-        imageObj.src = '/order.png';
-    }
+            receiptGroup.add(receipt);
 
+            // Start currentY much lower to clear the static "TODAY'S ORDERS" text on the image.
+            let currentY = receiptHeight * 0.14; 
 
-    private createOrderText(stageWidth: number, stageHeight: number): void {
-        const paperX = stageWidth * 0.45;
-        const paperY = stageHeight * 0.15;
-        const paperWidth = stageWidth * 0.45;
-        const textPadding = paperWidth * 0.05; 
-        const textWidth = paperWidth - (textPadding * 2);
-        
-        let currentY = paperY + stageHeight * 0.03; 
-
-        const gameTitle = new Konva.Text({
-            x: paperX + textPadding,
-            y: currentY,
-            width: textWidth,
-            text: 'COOKIE TRAILER TYCOON',
-            fontSize: Math.min(stageWidth * 0.025, 30),
-            fontStyle: 'bold',
-            fill: '#FF6B35',
-            align: 'center'
-        });
-        this.layer.add(gameTitle);
-        currentY += stageHeight * 0.06;
-
-        const ordersTitle = new Konva.Text({
-            x: paperX + textPadding,
-            y: currentY,
-            width: textWidth,
-            text: "TODAY'S ORDERS",
-            fontSize: Math.min(stageWidth * 0.018, 22),
-            fill: 'black',
-            align: 'center'
-        });
-        this.layer.add(ordersTitle);
-        currentY += stageHeight * 0.04;
-
-        const dayText = new Konva.Text({
-            x: paperX + textPadding,
-            y: currentY,
-            width: textWidth,
-            text: `DAY ${this.currentDay}`,
-            fontSize: Math.min(stageWidth * 0.015, 18),
-            fill: 'black',
-            align: 'center'
-        });
-        this.layer.add(dayText);
-        currentY += stageHeight * 0.04;
-
-        const separator = new Konva.Text({
-            x: paperX + textPadding,
-            y: currentY,
-            width: textWidth,
-            text: '- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -',
-            fontSize: Math.min(stageWidth * 0.012, 14),
-            fill: 'black',
-            align: 'center'
-        });
-        this.layer.add(separator);
-        currentY += stageHeight * 0.05;
-
-        // --- Generate random customer orders based on reputation ---
-        this.totalDemand = 0; // Reset total
-        const numCustomers = Math.max(1, Math.floor((Math.random() * 6 + 5) * this.reputation)); 
-        
-        for (let i = 1; i <= numCustomers; i++) {
-            const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation)); 
-            this.totalDemand += cookieCount; // <-- Store total
-
-            const customerOrder = new Konva.Text({
-                x: paperX + textPadding + (textWidth * 0.05), 
+            const dayText = new Konva.Text({
+                x: receiptWidth * 0.1,
                 y: currentY,
-                width: textWidth * 0.9, 
-                text: `${i}. CUSTOMER ${i}                    ${cookieCount} COOKIES`,
-                fontSize: Math.min(stageWidth * 0.013, 15), 
+                width: receiptWidth * 0.8,
+                text: `DAY ${this.currentDay}`,
+                fontSize: Math.min(stageWidth * 0.015, 18),
                 fill: 'black',
-                fontFamily: 'monospace' 
+                align: 'center',
+                fontFamily: 'Doto',
+                fontStyle: 'bold'
             });
-            this.layer.add(customerOrder);
-            currentY += stageHeight * 0.045; 
-        }
+            receiptGroup.add(dayText);
+            
+            // Advance currentY based on the screen height to leave a gap before the orders start
+            currentY += stageHeight * 0.04;
 
-        currentY += stageHeight * 0.02;
+            // --- Generate and Limit Customer Orders ---
+            this.totalDemand = 0; // Reset total
+            
+            // Generate raw customer count based on reputation
+            const rawNumCustomers = Math.floor((Math.random() * 6 + 5) * this.reputation);
+            // Apply the hard limit
+            const numCustomers = Math.min(MAX_CUSTOMER_LINES, Math.max(1, rawNumCustomers)); 
+            
+            const fontSize = Math.min(stageWidth * 0.013, 15);
 
-        const total = new Konva.Text({
-            x: paperX + textPadding,
-            y: currentY,
-            width: textWidth,
-            text: `TOTAL ........................ ${this.totalDemand} COOKIES`, // <-- Use stored total
-            fontSize: Math.min(stageWidth * 0.016, 18),
-            fontStyle: 'bold',
-            fill: 'black',
-            align: 'center'
-        });
-        this.layer.add(total);
+            for (let i = 1; i <= numCustomers; i++) {
+                const cookieCount = Math.max(1, Math.floor((Math.random() * 31 + 6) * this.reputation)); 
+                this.totalDemand += cookieCount; 
+
+                // LEFT COLUMN (Customer Name)
+                const customerName = new Konva.Text({
+                    x: X_PAD_LEFT,
+                    y: currentY,
+                    text: `${i}. CUSTOMER ${i}`,
+                    fontSize: fontSize,
+                    fontFamily: 'Doto',
+                    fill: 'black'
+                })
+                receiptGroup.add(customerName);
+                
+                // RIGHT COLUMN (Cookie Count)
+                const cookieCountText = new Konva.Text({
+                    x: X_PAD_RIGHT, 
+                    y: currentY,
+                    width: receiptWidth * 0.2, 
+                    text: `${cookieCount} COOKIES`,
+                    fontSize: fontSize, 
+                    fill: 'black',
+                    fontFamily: 'Doto',
+                    align: 'right'
+                });
+                receiptGroup.add(cookieCountText);
+                currentY += V_STEP_ORDER; // Tighter vertical advance
+            }
+            
+            // Calculate final TOTAL position based on where the list ended
+            const totalY = currentY + V_PAD_HEADER * 0.5; 
+
+            const totalText = new Konva.Text({
+                x: receiptWidth * 0.1,
+                y: totalY,
+                width: receiptWidth * 0.8,
+                text: `TOTAL: ${this.totalDemand} COOKIES`,
+                fontSize: Math.min(stageWidth * 0.016, 18),
+                fontStyle: 'bold',
+                fontFamily: 'Doto',
+                fill: 'black',
+                align: 'center'
+            });
+            receiptGroup.add(totalText);
+
+            this.layer.add(receiptGroup);
+            this.layer.draw();
+        };
+
+        imageObj.src = '/start-receipt.png'
     }
 
     // --- MODIFIED createContinueButton ---

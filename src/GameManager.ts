@@ -10,7 +10,6 @@ import { DaySummaryScreen } from './DaySummaryScreen';
 import { LoginScreen } from './LoginScreen';
 import { RecipeBookScreen } from './RecipeBookScreen';
 import { AnimationPlayer } from './AnimationPlayer'; 
-import { LoginScreen } from './LoginScreen'; 
 import { VictoryScreen } from './VictoryScreen'; 
 import { LoseScreen } from './LoseScreen';
 
@@ -25,6 +24,7 @@ export class GameManager {
     private currentBakingMinigameInstance: BakingMinigame | null = null;
     private currentCleaningMinigame: CleaningMinigame | null = null; 
     private postBakingAnimation: AnimationPlayer | null = null; 
+    private newDayAnimation: AnimationPlayer | null = null;
     
     private backgroundImage: Konva.Image | null = null;
     private loginBackgroundImage: Konva.Image | null = null;
@@ -94,6 +94,10 @@ export class GameManager {
             this.postBakingAnimation.destroy();
             this.postBakingAnimation = null;
         }
+        if (this.newDayAnimation) { // ADDED: End of day animation, starting a new day
+            this.newDayAnimation.destroy();
+            this.newDayAnimation = null;
+        }
 
         this.layer.destroyChildren(); 
 
@@ -141,12 +145,14 @@ export class GameManager {
             case GamePhase.POST_BAKING_ANIMATION:
                 this.renderPostBakingAnimation();
                 break;
-
             case GamePhase.CLEANING:
                 this.renderCleaningPhase(); 
                 break;
             case GamePhase.DAY_SUMMARY:
                 this.renderDaySummaryPhase(); 
+                break;
+            case GamePhase.NEW_DAY_ANIMATION:
+                this.renderNewDayAnimation();
                 break;
             case GamePhase.GAME_OVER:
                 this.renderGameOverPhase(); 
@@ -187,6 +193,42 @@ export class GameManager {
             this.currentPhase = GamePhase.CLEANING;
             this.renderCurrentPhase();
         });
+    }
+
+    private renderNewDayAnimation(): void {
+        if (this.newDayAnimation) {
+            this.newDayAnimation.destroy();
+        }
+
+        const IMAGE_PATHS = [
+            '/33.png', '/34.png', '/35.png', '/36.png', '/37.png', '/38.png',
+            '/39.png', '/40.png', '/41.png', '/42.png', '/43.png', '/44.png',
+            '/44.png', '/44.png', '/44.png'
+        ];
+
+        this.newDayAnimation = new AnimationPlayer(
+            this.layer,
+            IMAGE_PATHS,
+            2,
+            0, 0,
+            this.stage.width(), this.stage.height(),
+            false,
+            () => {
+                this.newDayAnimation = null;
+                this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
+                this.currentPhase = GamePhase.ORDER;
+                this.renderCurrentPhase();
+            }
+        );
+
+        this.newDayAnimation.load().then(() => {
+            this.newDayAnimation?.start();
+        }).catch(error => {
+            console.error("New day animation failed to load, skipping to next day.", error);
+            this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
+            this.currentPhase = GamePhase.ORDER;
+            this.renderCurrentPhase();
+        })
     }
 
 
@@ -342,9 +384,9 @@ export class GameManager {
                 } 
                 else if (this.checkBankruptcy()) {
                     this.currentPhase = GamePhase.GAME_OVER;
-                } 
+                }
                 else {
-                    this.currentPhase = GamePhase.ORDER;
+                    this.currentPhase = GamePhase.NEW_DAY_ANIMATION;
                 }
                 this.renderCurrentPhase();
             }
