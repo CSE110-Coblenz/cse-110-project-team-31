@@ -1,5 +1,6 @@
 export enum GamePhase {
     LOGIN,
+    STORYLINE,
     HOW_TO_PLAY,
     ORDER, 
     SHOPPING,

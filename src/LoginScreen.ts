@@ -197,6 +197,7 @@ export class LoginScreen {
                 alert('Please enter a name!');
                 return;
             }
+            localStorage.setItem('username', this.username.trim());
             this.cleanup();
             this.onLogin(this.username.trim());
         });
@@ -231,6 +232,7 @@ export class LoginScreen {
                 alert('Please enter a name!');
                 return;
             }
+            localStorage.setItem('username', this.username.trim());
             this.cleanup();
             this.onLogin(this.username.trim());
             return;
