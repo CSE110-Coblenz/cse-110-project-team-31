@@ -45,8 +45,14 @@ export class GameManager {
         this.stage = new Konva.Stage({ container, width: container.offsetWidth, height: container.offsetHeight });
         this.layer = new Konva.Layer();
         this.stage.add(this.layer);
+<<<<<<< Updated upstream
         this.currentPhase = GamePhase.LOGIN;
         this.previousPhase = GamePhase.LOGIN;
+=======
+
+        // this.currentPhase = GamePhase.SHOPPING;
+        this.currentPhase = GamePhase.LOGIN;
+>>>>>>> Stashed changes
         this.player = {
             username: '', 
             funds: this.config.startingFunds, 
