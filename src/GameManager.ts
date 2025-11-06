@@ -10,7 +10,6 @@ import { DaySummaryScreen } from './DaySummaryScreen';
 import { LoginScreen } from './LoginScreen';
 import { RecipeBookScreen } from './RecipeBookScreen';
 import { AnimationPlayer } from './AnimationPlayer'; 
-import { LoginScreen } from './LoginScreen'; 
 import { VictoryScreen } from './VictoryScreen'; 
 import { LoseScreen } from './LoseScreen';
 
@@ -148,12 +147,63 @@ export class GameManager {
             case GamePhase.DAY_SUMMARY:
                 this.renderDaySummaryPhase(); 
                 break;
+                
+            case GamePhase.VICTORY:
+                this.renderVictoryPhase();
+                break;
+            case GamePhase.DEFEAT:
+                this.renderLosePhase();
+                break;
+
             case GamePhase.GAME_OVER:
                 this.renderGameOverPhase(); 
                 break;
         }
     }
-    
+    private renderVictoryPhase(): void {
+        // renderCurrentPhase() already cleared the layer and added background (if any),
+        // so we just mount the VictoryScreen UI.
+        new VictoryScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            // If you consider "days played" as completed days, use (this.player.currentDay - 1)
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+            this.previousPhase = GamePhase.VICTORY;
+            this.currentPhase = GamePhase.LOGIN;
+            this.renderCurrentPhase();
+            },
+            onReturnHome: () => {
+            this.previousPhase = GamePhase.VICTORY;
+            this.currentPhase = GamePhase.HOW_TO_PLAY;
+            this.renderCurrentPhase();
+            },
+        });
+    }
+
+    private renderLosePhase(): void {
+        // Layer was already cleared in renderCurrentPhase; just mount your LoseScreen UI.
+        new LoseScreen(this.stage, this.layer, {
+            cashBalance: this.player.funds,
+            // If you count completed days only, swap to (this.player.currentDay - 1)
+            totalDaysPlayed: this.player.currentDay,
+            onExit: () => {
+            this.previousPhase = GamePhase.DEFEAT;
+            this.currentPhase = GamePhase.LOGIN;
+            this.renderCurrentPhase();
+            },
+        onRetry: () => {
+            // Optional: fully reset a new run if you have a helper
+            if (typeof (this as any).resetForNewRun === 'function') {
+                (this as any).resetForNewRun();
+            }
+            this.previousPhase = GamePhase.DEFEAT;
+            this.currentPhase = GamePhase.HOW_TO_PLAY; // "Return to home"
+            this.renderCurrentPhase();
+            },
+        });
+    }
+
+
     private renderPostBakingAnimation(): void {
         if (this.postBakingAnimation) {
             this.postBakingAnimation.destroy();
@@ -336,12 +386,14 @@ export class GameManager {
             this.dayTips, 
             () => { 
                 this.previousPhase = this.currentPhase;
-                
+
                 if (this.player.funds >= this.config.winThreshold) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    // was: this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.VICTORY;
                 } 
                 else if (this.checkBankruptcy()) {
-                    this.currentPhase = GamePhase.GAME_OVER;
+                    // was: this.currentPhase = GamePhase.GAME_OVER;
+                    this.currentPhase = GamePhase.DEFEAT;
                 } 
                 else {
                     this.currentPhase = GamePhase.ORDER;
@@ -371,7 +423,7 @@ export class GameManager {
         console.log("GAME OVER: No ingredients and not enough funds to buy more.");
         return true; 
     }
-
+    
 
     private renderGameOverPhase(): void {
         const won = this.player.funds >= this.config.winThreshold;
