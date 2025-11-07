@@ -482,9 +482,9 @@ export class GameManager {
         this.previousPhase = this.currentPhase;
 
         if (this.player.funds >= this.config.winThreshold) {
-          this.currentPhase = GamePhase.GAME_OVER;
+          this.currentPhase = GamePhase.VICTORY;
         } else if (this.checkBankruptcy()) {
-          this.currentPhase = GamePhase.GAME_OVER;
+          this.currentPhase = GamePhase.DEFEAT;
         } else {
           this.currentPhase = GamePhase.NEW_DAY_ANIMATION;
         }
