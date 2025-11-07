@@ -49,7 +49,7 @@ export class GameManager {
         this.previousPhase = GamePhase.LOGIN;
 
         // this.currentPhase = GamePhase.SHOPPING;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.currentPhase = GamePhase.LOGIN;
         this.player = {
             username: '', 
             funds: this.config.startingFunds, 
