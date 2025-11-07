@@ -167,7 +167,7 @@ export class LoginScreen {
             x: buttonWidth / 2 - 10, 
             y: buttonHeight,         
             width: 20,
-            height: 150,
+            height: 215,
             fill: '#b5895a',
             shadowColor: '#654321',
             shadowBlur: 5,
@@ -197,6 +197,7 @@ export class LoginScreen {
                 alert('Please enter a name!');
                 return;
             }
+            localStorage.setItem('username', this.username.trim());
             this.cleanup();
             this.onLogin(this.username.trim());
         });
@@ -231,6 +232,7 @@ export class LoginScreen {
                 alert('Please enter a name!');
                 return;
             }
+            localStorage.setItem('username', this.username.trim());
             this.cleanup();
             this.onLogin(this.username.trim());
             return;

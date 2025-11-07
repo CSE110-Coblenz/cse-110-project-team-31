@@ -1,5 +1,6 @@
 export enum GamePhase {
     LOGIN,
+    STORYLINE,
     HOW_TO_PLAY,
     ORDER, 
     SHOPPING,
@@ -8,6 +9,7 @@ export enum GamePhase {
     POST_BAKING_ANIMATION,
     CLEANING,
     DAY_SUMMARY,
+    NEW_DAY_ANIMATION,
     GAME_OVER,
     VICTORY,
     DEFEAT
