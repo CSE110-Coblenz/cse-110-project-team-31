@@ -14,7 +14,8 @@ import { StoryScreen } from './StoryScreen';
 import { VictoryScreen } from './VictoryScreen';
 import { LoseScreen } from './LoseScreen';
 
-export class GameManager {
+export class GameManager {  
+
   private stage: Konva.Stage;
   private layer: Konva.Layer;
   private currentPhase: GamePhase;
@@ -26,12 +27,18 @@ export class GameManager {
   private currentCleaningMinigame: CleaningMinigame | null = null;
   private postBakingAnimation: AnimationPlayer | null = null;
   private newDayAnimation: AnimationPlayer | null = null;
-
+  
   private backgroundImage: Konva.Image | null = null;
   private loginBackgroundImage: Konva.Image | null = null;
   private daySales: number = 0;
   private dayExpenses: number = 0;
   private dayTips: number = 0;
+  
+  private winSound = new Audio('./public/Win_sound.mp3');
+  private loseSound = new Audio('./public/Lose_sound.mp3');
+  private winPlayedOnce: boolean = false;
+  private losePlayedOnce: boolean = false;  
+  audioReady = false;     
 
   private cookieRecipe: Map<string, number> = new Map([
     ['Flour', 3],
@@ -240,13 +247,25 @@ export class GameManager {
   }
 
   private renderVictoryPhase(): void {
+    this.audioReady = true;
+
+    if (this.audioReady && !this.winPlayedOnce) {
+        this.winSound.currentTime = 0;
+        this.winSound.play().catch(()=>{});
+        this.winPlayedOnce = true;
+    }
     new VictoryScreen(this.stage, this.layer, {
+        
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
       onExit: () => {
         this.previousPhase = GamePhase.VICTORY;
+        this.backgroundImage?.remove();   
+        this.layer.draw();           
+
+        this.resetGame(); 
         this.currentPhase = GamePhase.LOGIN;
-        this.resetGame(); // Reset game state
+        // Reset game state
         this.renderCurrentPhase();
       },
       onReturnHome: () => {
@@ -259,11 +278,18 @@ export class GameManager {
   }
 
   private renderLosePhase(): void {
+    this.audioReady = true;
+    if (this.audioReady) {
+    this.loseSound.currentTime = 0;
+    this.loseSound.play().catch(() => {});
+    }
     new LoseScreen(this.stage, this.layer, {
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
       onExit: () => {
         this.previousPhase = GamePhase.DEFEAT;
+        this.backgroundImage?.remove();   
+        this.layer.draw();
         this.currentPhase = GamePhase.LOGIN;
         this.resetGame(); // Reset game state
         this.renderCurrentPhase();
