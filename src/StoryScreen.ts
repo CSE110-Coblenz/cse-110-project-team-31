@@ -175,7 +175,7 @@ export class StoryScreen {
             onComplete();
           });
         }
-      }, 10);
+      }, 50);
     };
 
     image.src = bgSrc;
