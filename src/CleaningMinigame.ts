@@ -289,7 +289,7 @@ export class CleaningMinigame {
         const infoButton = new InfoButton(
             this.stage, 
             this.layer,
-            'Solve as many multiplication problems as you can within the time limit to clean dishes! Type your answer and press ENTER. Each correct answer cleans one dish. Clean all dishes to maximize your reputation!'
+            'Solve as many multiplication problems as you can within the time limit to clean dishes! \n\nType your answer and press ENTER. \n\nEach correct answer cleans one dish. \n\nClean all dishes to maximize your reputation! \nGood luck!'
         );
     }
 
