@@ -154,23 +154,30 @@ export class StoryScreen {
           layer.add(button);
           layer.draw();
 
-          button.on("mouseenter", function () {
-            stage.container().style.cursor = cursorPointer;
-            const tag = this.getChildren()[0] as Konva.Tag;
+          button.on("click", () => {
+            layer.destroyChildren();
+            onComplete();
+          });
 
+          // Fix cursor with inner text not blocking events
+          (button.getChildren()[1] as Konva.Text).listening(false);
+
+          // Mouse hover
+          button.on("mouseenter", () => {
+            stage.container().style.cursor = cursorPointer;
+            const tag = button.getChildren()[0] as Konva.Tag;
             tag.shadowBlur(buttonShadowBlurHover);
             tag.shadowOffset(buttonShadowOffsetHover);
             tag.fill("#fcbf49");
             layer.draw();
           });
-          
-          button.on("mouseleave", function () {
+
+          button.on("mouseleave", () => {
             stage.container().style.cursor = cursorDefault;
-            const tag = this.getChildren()[0] as Konva.Tag;
+            const tag = button.getChildren()[0] as Konva.Tag;
             tag.shadowBlur(buttonShadowBlurDefault);
             tag.shadowOffset(buttonShadowOffsetDefault);
             tag.fill("#F77F00");
-
             layer.draw();
           });
 

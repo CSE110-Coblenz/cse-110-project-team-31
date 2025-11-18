@@ -576,6 +576,15 @@ export class ShoppingScreen {
     inputBox.on("click", () =>
       this.focusInput(ingredient.name, inputBox, inputText)
     );
+
+    inputBox.on("mouseenter", () => {
+      this.stage.container().style.cursor = "pointer";
+    });
+    inputBox.on("mouseleave", () => {
+      this.stage.container().style.cursor = "default";
+    });
+
+    inputText.listening(false);
     inputText.on("click", () =>
       this.focusInput(ingredient.name, inputBox, inputText)
     );
