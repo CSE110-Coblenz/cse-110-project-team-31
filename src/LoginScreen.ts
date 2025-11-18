@@ -186,21 +186,25 @@ export class LoginScreen {
         const width = Math.min(stageWidth * 0.25, 300);
         const height = 60;
 
-        const group = new Konva.Group({
+        // Main sign group (everything is inside this)
+        const signGroup = new Konva.Group({
             x: (stageWidth - width) / 2,
-            y: stageHeight * 0.62
+            y: stageHeight * 0.62,
         });
 
+        // Wooden board
         const board = new Konva.Rect({
             width,
             height,
             fill: '#a67c52',
-            shadowColor: '#654321',
+            cornerRadius: 6,
             shadowBlur: 8,
+            shadowColor: '#654321',
             shadowOffsetY: 3,
             shadowOpacity: 0.6
         });
 
+        // Wooden arrow pointer
         const arrow = new Konva.Line({
             points: [
                 width, 0,
@@ -214,6 +218,7 @@ export class LoginScreen {
             shadowOpacity: 0.5
         });
 
+        // Wooden post under the sign
         const post = new Konva.Rect({
             x: width / 2 - 10,
             y: height,
@@ -226,6 +231,7 @@ export class LoginScreen {
             shadowOpacity: 0.5
         });
 
+        // Text on the board
         const text = new Konva.Text({
             width,
             height,
@@ -237,12 +243,14 @@ export class LoginScreen {
             verticalAlign: 'middle'
         });
 
-        group.add(board);
-        group.add(arrow);
-        group.add(text);
-        group.add(post);
+        // Add everything to ONE group
+        signGroup.add(post);
+        signGroup.add(board);
+        signGroup.add(arrow);
+        signGroup.add(text);
 
-        group.on('click', () => {
+        // Click behavior
+        signGroup.on('click', () => {
             if (this.username.trim() === '') {
                 alert('Please enter a name!');
                 return;
@@ -250,7 +258,8 @@ export class LoginScreen {
             this.finishLogin();
         });
 
-        group.on('mouseenter', () => {
+        // Hover animation (affects whole sign)
+        signGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
             board.shadowBlur(20);
             board.shadowOpacity(0.9);
@@ -258,7 +267,7 @@ export class LoginScreen {
             this.layer.draw();
         });
 
-        group.on('mouseleave', () => {
+        signGroup.on('mouseleave', () => {
             this.stage.container().style.cursor = 'default';
             board.shadowBlur(8);
             board.shadowOpacity(0.6);
@@ -266,7 +275,7 @@ export class LoginScreen {
             this.layer.draw();
         });
 
-        this.layer.add(group);
+        this.layer.add(signGroup);
     }
 
     // COMPLETE LOGIN

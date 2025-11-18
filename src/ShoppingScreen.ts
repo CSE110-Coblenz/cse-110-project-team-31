@@ -563,6 +563,7 @@ export class ShoppingScreen {
       y: y + (boxHeight * 0.3), 
       text: ingredient.inputValue,
       fontSize: Math.min(stageWidth * 0.015, 18),
+      fontFamily: 'Press Start 2P',
       fill: "black",
       width: boxWidth,
       align: 'center'
