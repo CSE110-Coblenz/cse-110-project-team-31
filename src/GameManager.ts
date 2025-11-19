@@ -314,15 +314,9 @@ export class GameManager {
     new VictoryScreen(this.stage, this.layer, {
       cashBalance: this.player.funds,
       totalDaysPlayed: this.player.currentDay,
-      onExit: () => {
-        this.previousPhase = GamePhase.VICTORY;
-        this.currentPhase = GamePhase.LOGIN;
-        this.resetGame(); // Reset game state
-        this.renderCurrentPhase();
-      },
       onReturnHome: () => {
         this.previousPhase = GamePhase.VICTORY;
-        this.currentPhase = GamePhase.HOW_TO_PLAY;
+        this.currentPhase = GamePhase.LOGIN;
         this.resetGame(); // Reset game state
         this.renderCurrentPhase();
       },
