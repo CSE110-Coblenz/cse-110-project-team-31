@@ -68,9 +68,9 @@ export class GameManager {
   constructor(container: HTMLDivElement) {
     [this.bgmIntro, this.bgmStory, this.bgmMain,this.bgmAnim, this.bgmEndDay,this.bgmbaking].forEach(a => {
     a.loop = true;
-    a.volume = 0.4;
+    a.volume = 0.25;
     });
-
+    this.bgmStory.volume = 0.1;
   // unlock audio on first user action
     const unlockAudio = () => {
       if (this.audioUnlocked) return;
