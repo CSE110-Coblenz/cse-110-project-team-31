@@ -468,4 +468,5 @@ export class CleaningMinigame {
         this.minigameUIGroup.destroy();
         this.choiceUIGroup.destroy();
     }
+
 }
