@@ -27,6 +27,7 @@ export class GameManager {
   private currentCleaningMinigame: CleaningMinigame | null = null;
   private postBakingAnimation: AnimationPlayer | null = null;
   private newDayAnimation: AnimationPlayer | null = null;
+  private savedShoppingInputs: Map<string, string> | undefined; //to hold ingredient input values when screen switches
   
   private backgroundImage: Konva.Image | null = null;
   private loginBackgroundImage: Konva.Image | null = null;
@@ -571,7 +572,7 @@ private updateBackgroundMusic(): void {
     this.daySales = 0;
     this.dayExpenses = 0;
     this.dayTips = 0;
-    new ShoppingScreen(
+    const shoppingScreen = new ShoppingScreen( //made this an instance to use for saving input values
       this.stage,
       this.layer,
       this.player.funds,
@@ -579,6 +580,7 @@ private updateBackgroundMusic(): void {
       this.player.currentDayDemand, // ADDED: Keep track of day demand centrally to use it across pages
       this.customerOrders,
       (purchases, totalCost) => {
+        this.savedShoppingInputs = undefined; //ensures values reset after purcahse or for new day.
         this.player.funds -= totalCost;
         this.dayExpenses += totalCost;
         purchases.forEach((qty, name) => {
@@ -594,10 +596,13 @@ private updateBackgroundMusic(): void {
         this.renderCurrentPhase();
       },
       () => {
+        //save current values before navigating to recipe
+        this.savedShoppingInputs = shoppingScreen.getIngredientValues();
         this.previousPhase = this.currentPhase;
         this.currentPhase = GamePhase.RECIPE_BOOK;
         this.renderCurrentPhase();
-      }
+      },
+      this.savedShoppingInputs //pass saved values
     );
   }
 
