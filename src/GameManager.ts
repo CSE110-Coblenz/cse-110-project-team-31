@@ -92,6 +92,9 @@ export class GameManager {
     this.currentPhase = GamePhase.LOGIN;
     this.previousPhase = GamePhase.LOGIN;
 
+    // Debug: Log the starting funds value
+    console.log('Starting funds from config:', this.config.startingFunds);
+    
     this.player = {
       username: '',
       funds: this.config.startingFunds,
