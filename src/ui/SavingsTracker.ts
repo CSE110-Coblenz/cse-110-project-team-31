@@ -8,6 +8,7 @@ export class SavingsTracker {
 
     //Progress bar components
     private progressBarBG!: Konva.Rect;
+    private progressBarHighlight!: Konva.Rect;
     private progressBarFill!: Konva.Rect;
     private cookieIcon!: Konva.Image;
     private labelText !: Konva.Text;
@@ -40,14 +41,30 @@ export class SavingsTracker {
         const barX = stageWidth * 0.10;
         const barY = stageHeight * 0.20;
 
+        //for consistent bar radius
+        const radius = 14;
+
         // progress bar background
         this.progressBarBG = new Konva.Rect({
             x: barX,
             y: barY,
             width: barWidth,
             height: barHeight,
-            fill: "#d9d9d9",
-            cornerRadius: 12,
+            fillLinearGradientStartPoint: {x:0, y:0},
+            fillLinearGradientEndPoint: {x: 0, y: barHeight},
+            fillLinearGradientColorStops:[0, "#eeeeee", 1, "#cccccc"], //added to have gradient feature in progress bar
+            cornerRadius: radius,
+        });
+
+        //gloss highlight to have top shine
+        this.progressBarHighlight = new Konva.Rect({
+            x: 0,
+            y: 0,
+            width: barWidth,
+            height: barHeight * 0.45,
+            cornerRadius: [radius, radius, 0, 0],
+            fill: "white",
+            opacity: 0.25,
         });
 
         // Bar fill
@@ -56,8 +73,10 @@ export class SavingsTracker {
             y: barY,
             width: 0, //starts empty, consistently updates, with the update() function
             height: barHeight,
-            fill: "#ffbd59",
-            cornerRadius: 12,
+            cornerRadius: radius,
+            fillLinearGradientStartPoint: {x:0, y:0},
+            fillLinearGradientEndPoint: {x: 0, y: barHeight},
+            fillLinearGradientColorStops:[0, "#ffd27a", 1, "#e6a837"], //added to have gradient feature in progress bar
         });
 
         //progress bar label - consistently updates balance through update() function
@@ -119,6 +138,7 @@ export class SavingsTracker {
 
         // Add to layer
         this.layer.add(this.progressBarBG);
+        this.layer.add(this.progressBarHighlight);
         this.layer.add(this.progressBarFill);
         this.layer.add(this.cookieIcon);
     }
@@ -131,16 +151,15 @@ export class SavingsTracker {
         // fix percent range to be [0,1], so bar won't go out of bounds
         this.progress = Math.min(1, Math.max(0, rawProgress));
 
-        const barX = this.progressBarBG.x();
+        const barX = this.progressBarBG.x(); //used to update cookie position to align with progress
         const barWidth = this.progressBarBG.width();
 
         // Update bar fill based on progress
         this.progressBarFill.width(barWidth * this.progress);
+        this.progressBarHighlight.width(barWidth) //added for bar highlights
 
         // Move cookie along the bar
-        const cookieX =
-            barX + (barWidth * this.progress) - (this.cookieIcon.width() / 2);
-
+        const cookieX = barX + (barWidth * this.progress) - (this.cookieIcon.width() / 2);
         this.cookieIcon.x(cookieX);
 
         //update current funds in text label
