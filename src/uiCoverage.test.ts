@@ -105,7 +105,9 @@ function createKonvaMock() {
     constructor(private cb?: (frame: any) => void, private _layer?: any) {}
     start() {
       this.started = true;
-      this.cb?.({ timeDiff: 16.6 });
+      [1000, 5000, 5000].forEach((timeDiff) =>
+        this.cb?.({ timeDiff })
+      );
     }
     stop() {
       this.stopped = true;
@@ -317,10 +319,38 @@ describe("UI component coverage", () => {
     // Ensure purchase button exists even if draw order changes
     screen.createPurchaseButton?.(stage.width(), 0);
 
-    // Simulate focusing first ingredient and typing
-    screen.focusedInput = "Flour";
+    // handleKeyPress no focus early return
+    screen.handleKeyPress(new KeyboardEvent("keydown", { key: "1" }));
+
+    // Simulate focusing first ingredient and typing via helper
+    const tempRect = new Konva.Rect();
+    const tempText = new Konva.Text();
+    screen.focusInput("Flour", tempRect, tempText);
     screen.handleKeyPress(new KeyboardEvent("keydown", { key: "9" }));
     screen.handleKeyPress(new KeyboardEvent("keydown", { key: "Backspace" }));
+
+    // Force totals to flip color states
+    screen.ingredients[0].inputValue = "100";
+    if (!screen.totalCostText) screen.totalCostText = new Konva.Text();
+    screen.updateTotalCost();
+    expect(screen.totalCostText.fill()).toBe("red");
+    screen.currentFunds = 1000;
+    screen.updateTotalCost();
+    expect(screen.totalCostText.fill()).toBe("white");
+
+    screen.updateInputDisplay("Flour");
+    const values = screen.getIngredientValues();
+    expect(values.size).toBeGreaterThan(0);
+
+    // trigger view recipe button hover + click
+    const viewRecipeButton = layer
+      .getChildren()
+      .find((c: any) =>
+        c.getChildren?.().some((n: any) => n.text?.() === "VIEW RECIPE")
+      );
+    viewRecipeButton?.fire("mouseenter");
+    viewRecipeButton?.fire("mouseleave");
+    viewRecipeButton?.fire("click");
 
     // Trigger purchase button click (should succeed)
     const purchaseButton =
