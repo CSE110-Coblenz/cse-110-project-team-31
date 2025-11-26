@@ -27,6 +27,14 @@ export class ShoppingScreen {
   private focusedInputBox: Konva.Rect | null = null;
   private currentPriceText: Konva.Text | null = null;
   
+  // Image caching
+  private priceTagImageObj: HTMLImageElement | null = null; 
+
+  // Resize Handling
+  private resizeHandler: () => void;
+  private animationFrameId: number | null = null;
+  private currentRenderId: number = 0;
+  
   private priceTagImageObj: HTMLImageElement | null = null; 
 
   // --- UPDATED ORDER: Flour, Butter, Sugar, Chocolate, Baking Soda ---
@@ -54,7 +62,7 @@ export class ShoppingScreen {
       totalCost: number
     ) => void,
     onViewRecipe: () => void,
-    savedInputValues: Map<string, string> | undefined = undefined 
+    savedInputValues: Map<string, string> | undefined = undefined
   ) {
     this.stage = stage;
     this.layer = layer;
@@ -64,7 +72,9 @@ export class ShoppingScreen {
     this.customerOrders = customerOrders;
     this.onPurchaseComplete = onPurchaseComplete;
     this.onViewRecipe = onViewRecipe;
+    
     this.keyboardHandler = this.handleKeyPress.bind(this);
+    this.resizeHandler = this.handleResize.bind(this);
 
     if(savedInputValues){
       this.ingredients.forEach(ingredient => {
@@ -74,13 +84,28 @@ export class ShoppingScreen {
         }
       });
     }
+
     this.setupUI();
     this.setupKeyboardInput();
+
+    window.addEventListener('resize', this.resizeHandler);
+  }
+
+  private handleResize(): void {
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+
+    this.animationFrameId = requestAnimationFrame(() => {
+        this.layer.destroyChildren();
+        this.setupUI();
+    });
   }
 
   // ... (Rest of the class methods remain exactly the same) ...
 
   private setupUI(): void {
+    this.currentRenderId++;
+    const myRenderId = this.currentRenderId;
+
     this.layer.destroyChildren();
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
@@ -88,6 +113,8 @@ export class ShoppingScreen {
     const backgroundImage = new Image();
     backgroundImage.src = "./Shopping.png";
     backgroundImage.onload = () => {
+      if (this.currentRenderId !== myRenderId) return;
+
       const background = new Konva.Image({
         x: 0,
         y: 0,
@@ -100,6 +127,7 @@ export class ShoppingScreen {
       this.layer.draw();
 
       this.loadPriceTagImage(() => {
+        if (this.currentRenderId !== myRenderId) return;
         this.drawDynamicUI();
         this.layer.draw();
       });
@@ -107,6 +135,11 @@ export class ShoppingScreen {
   }
   
   private loadPriceTagImage(callback: () => void): void {
+    if (this.priceTagImageObj) {
+        callback(); 
+        return;
+    }
+
     this.priceTagImageObj = new Image();
     this.priceTagImageObj.onload = callback;
     this.priceTagImageObj.onerror = () => {
@@ -143,6 +176,8 @@ export class ShoppingScreen {
     const nameY = stageHeight * 0.65;
 
     this.ingredients.forEach((ingredient, index) => {
+        if (index >= itemXPercentages.length) return;
+
         const center_X = stageWidth * itemXPercentages[index];
         this.createIngredientNameText(stageWidth, nameY, ingredient.name, center_X);
         this.createPriceTagGroup(stageWidth, stageHeight, ingredient, center_X); 
@@ -217,7 +252,7 @@ export class ShoppingScreen {
     const desiredWidth = stageWidth * 0.09;
     let desiredHeight = stageHeight * 0.07;
 
-    if (this.priceTagImageObj) {
+    if (this.priceTagImageObj && this.priceTagImageObj.width) {
         const aspectRatio = this.priceTagImageObj.width / this.priceTagImageObj.height;
         desiredHeight = desiredWidth / aspectRatio;
     }
@@ -229,7 +264,7 @@ export class ShoppingScreen {
       y: priceTagY - desiredHeight / 2,
     });
 
-    if (this.priceTagImageObj) {
+    if (this.priceTagImageObj && this.priceTagImageObj.width) {
       const priceTagImage = new Konva.Image({
         image: this.priceTagImageObj,
         width: desiredWidth,
@@ -317,10 +352,7 @@ export class ShoppingScreen {
     this.layer.draw();
   }
 
-  private createViewOrdersButton(
-    stageWidth: number,
-    stageHeight: number
-  ): void {
+  private createViewOrdersButton(stageWidth: number, stageHeight: number): void {
     const buttonWidth = stageWidth * 0.12; 
     const buttonHeight = stageWidth * 0.03; 
     const footerY = stageHeight * 0.75;
@@ -386,6 +418,7 @@ export class ShoppingScreen {
         height: stageHeight,
         fill: 'rgba(0, 0, 0, 0.7)',
     });
+    overlay.on('click', () => modalLayer.destroy());
     modalLayer.add(overlay);
 
     const imageObj = new Image();
@@ -394,14 +427,19 @@ export class ShoppingScreen {
         const receiptWidth = stageWidth * 0.3;
         const receiptHeight = receiptWidth / aspectRatio;
 
+        // Modal Coordinates
+        const modalX = (stageWidth - receiptWidth) / 2;
+        const modalY = (stageHeight - receiptHeight) / 2 - stageHeight * 0.05;
+
+        // Layout Constants
         const V_PAD_HEADER = receiptHeight * 0.05;
         const V_STEP_ORDER = receiptHeight * 0.035;
         const X_PAD_LEFT = receiptWidth * 0.1;
         const X_PAD_RIGHT = receiptWidth * 0.55;
 
         const receiptGroup = new Konva.Group({
-            x: (stageWidth - receiptWidth) / 2,
-            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05,
+            x: modalX,
+            y: modalY,
         });
         
         const receipt = new Konva.Image({
@@ -472,56 +510,72 @@ export class ShoppingScreen {
 
         modalLayer.add(receiptGroup);
 
-        const closeButtonSize = receiptWidth * 0.08;
-        const closeButton = new Konva.Circle({
-            x: (stageWidth - receiptWidth) / 2 + closeButtonSize,
-            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05 + closeButtonSize,
-            radius: closeButtonSize / 2,
+        // --- FIXED CLOSE BUTTON POSITIONING ---
+        // Size: 5.5% of receipt width
+        const closeButtonDiameter = receiptWidth * 0.055;
+        const radius = closeButtonDiameter / 2;
+        
+        // PADDING FIX: 
+        // X Padding: Standard 4.5% to clear the left edge
+        // Y Padding: Reduced to 2% to move the button HIGHER (visually even with left)
+        const paddingX = receiptWidth * 0.05;
+        const paddingY = receiptWidth * 0.012;
+
+        const closeGroup = new Konva.Group({
+            x: modalX + paddingX + radius, 
+            y: modalY + paddingY + radius, 
+        });
+
+        const closeCircle = new Konva.Circle({
+            radius: radius,
             fill: '#e74c3c',
+            shadowColor: 'black',
+            shadowBlur: 4,
+            shadowOpacity: 0.3
         });
 
         const closeX = new Konva.Text({
-            x: (stageWidth - receiptWidth) / 2 + closeButtonSize - 1,
-            y: (stageHeight - receiptHeight) / 2 - stageHeight * 0.05 + closeButtonSize,
             text: 'X',
-            fontSize: closeButtonSize * 0.6,
+            fontSize: radius,
             fill: 'white',
             fontFamily: 'Press Start 2P',
             fontStyle: 'bold',
-            offsetX: closeButtonSize * 0.18,
-            offsetY: closeButtonSize * 0.25,
+            align: 'center',
+            verticalAlign: 'middle'
         });
+        
+        // Perfect Center
+        closeX.offsetX(closeX.width() / 2);
+        closeX.offsetY(closeX.height() / 2);
 
-        closeButton.on('click', () => {
+        closeGroup.add(closeCircle);
+        closeGroup.add(closeX);
+
+        closeGroup.on('click', () => {
             modalLayer.destroy();
         });
-        closeButton.on('mouseenter', () => {
+
+        closeGroup.on('mouseenter', () => {
             this.stage.container().style.cursor = 'pointer';
-            closeButton.fill('#c0392b');
-            modalLayer.draw();
-        });
-        closeButton.on('mouseleave', () => {
-            this.stage.container().style.cursor = 'default';
-            closeButton.fill('#e74c3c');
+            closeCircle.fill('#c0392b');
             modalLayer.draw();
         });
 
-        modalLayer.add(closeButton);
-        modalLayer.add(closeX);
+        closeGroup.on('mouseleave', () => {
+            this.stage.container().style.cursor = 'default';
+            closeCircle.fill('#e74c3c');
+            modalLayer.draw();
+        });
+
+        modalLayer.add(closeGroup);
         modalLayer.draw();
     };
 
     imageObj.src = '/start-receipt.png';
-    
     this.stage.add(modalLayer);
   }
 
-  private createIngredientRow(
-    stageWidth: number,
-    y: number,
-    ingredient: IngredientItem,
-    center_X: number
-  ): void {
+  private createIngredientRow(stageWidth: number, y: number, ingredient: IngredientItem, center_X: number): void {
     const boxWidth = stageWidth * 0.07;
     const boxHeight = stageWidth * 0.03;
 
@@ -551,28 +605,15 @@ export class ShoppingScreen {
 
     this.inputTexts.set(ingredient.name, inputText);
 
-    inputBox.on("click", () =>
-      this.focusInput(ingredient.name, inputBox, inputText)
-    );
-
-    inputBox.on("mouseenter", () => {
-      this.stage.container().style.cursor = "pointer";
-    });
-    inputBox.on("mouseleave", () => {
-      this.stage.container().style.cursor = "default";
-    });
+    inputBox.on("click", () => this.focusInput(ingredient.name, inputBox, inputText));
+    inputBox.on("mouseenter", () => this.stage.container().style.cursor = "pointer");
+    inputBox.on("mouseleave", () => this.stage.container().style.cursor = "default");
 
     inputText.listening(false);
-    inputText.on("click", () =>
-      this.focusInput(ingredient.name, inputBox, inputText)
-    );
+    inputText.on("click", () => this.focusInput(ingredient.name, inputBox, inputText));
   }
 
-  private focusInput(
-    ingredientName: string,
-    inputBox: Konva.Rect,
-    inputText: Konva.Text
-  ): void {
+  private focusInput(ingredientName: string, inputBox: Konva.Rect, inputText: Konva.Text): void {
     if (this.focusedInputBox) {
       this.focusedInputBox.stroke("#3498db");
       this.focusedInputBox.strokeWidth(2);
@@ -592,14 +633,11 @@ export class ShoppingScreen {
 
   private handleKeyPress(e: KeyboardEvent): void {
     if (!this.focusedInput) return;
-    const ingredient = this.ingredients.find(
-      (i) => i.name === this.focusedInput
-    );
+    const ingredient = this.ingredients.find((i) => i.name === this.focusedInput);
     if (!ingredient) return;
 
     if (e.key >= "0" && e.key <= "9") {
-      ingredient.inputValue =
-        ingredient.inputValue === "0" ? e.key : ingredient.inputValue + e.key;
+      ingredient.inputValue = ingredient.inputValue === "0" ? e.key : ingredient.inputValue + e.key;
       this.updateInputDisplay(ingredient.name);
       this.updateTotalCost();
     } else if (e.key === "Backspace") {
@@ -680,9 +718,7 @@ export class ShoppingScreen {
       this.currentFunds -= totalCost;
 
       if (this.currentPriceText) {
-        this.currentPriceText.text(
-          `Current Balance: $${this.currentFunds.toFixed(2)}`
-        );
+        this.currentPriceText.text(`Current Balance: $${this.currentFunds.toFixed(2)}`);
         this.layer.draw();
       }
 
@@ -713,6 +749,8 @@ export class ShoppingScreen {
 
   public cleanup(): void {
     window.removeEventListener("keydown", this.keyboardHandler);
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    window.removeEventListener('resize', this.resizeHandler);
   }
 
   public getIngredientValues(): Map<string, string>{

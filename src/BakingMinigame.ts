@@ -231,10 +231,11 @@ export class BakingMinigame {
 
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
-        const stage = this.stage; 
+
+        // --- FIX 1: Removed Dark Overlay (Background remains visible/clear) ---
 
         const modalWidth = stageWidth * 0.7;
-        const modalHeight = stageHeight * 0.6;
+        const modalHeight = stageHeight * 0.7;
         const modalX = (stageWidth - modalWidth) / 2;
         const modalY = (stageHeight - modalHeight) / 2;
 
@@ -282,7 +283,7 @@ export class BakingMinigame {
             y: subTitle.y() + subTitle.height() + modalHeight * 0.05, 
             width: modalWidth * 0.8, 
             text: newBodyText,
-            fontSize: Math.min(stageWidth * 0.022, 26), 
+            fontSize: Math.min(stageWidth * 0.022, 24), 
             fill: '#333', 
             align: 'center', 
             lineHeight: 1.6,
@@ -304,68 +305,96 @@ export class BakingMinigame {
         });
         this.choiceUIGroup.add(promptText);
 
-        const playButtonWidth = modalWidth * 0.25;
-        const playButtonHeight = modalHeight * 0.15;
-        const playButtonX = modalX + modalWidth * 0.3 - playButtonWidth / 2; 
+        // --- FIX 2: Buttons Closer Together ---
         
-        const playButtonY = promptText.y() + promptText.height() + modalHeight * 0.05;
+        const buttonWidth = modalWidth * 0.2;
+        const buttonHeight = modalHeight * 0.15;
+        const buttonGap = modalWidth * 0.2; // Space between buttons
+        
+        const buttonY = modalY + modalHeight - buttonHeight - 40;
+        
+        // Calculate X positions relative to the center of the modal
+        const modalCenterX = modalX + (modalWidth / 2);
+        
+        // Play Button to the left of center
+        const playButtonX = modalCenterX - buttonWidth - (buttonGap / 2);
+        // Skip Button to the right of center
+        const skipButtonX = modalCenterX + (buttonGap / 2);
 
-        const playButtonGroup = new Konva.Group({ x: playButtonX, y: playButtonY }); 
+        // PLAY BUTTON (Green)
+        const playButtonGroup = new Konva.Group({ x: playButtonX, y: buttonY }); 
         const playRect = new Konva.Rect({
-            width: playButtonWidth, height: playButtonHeight, fill: '#90EE90',
-            cornerRadius: 10, stroke: '#2E8B57', strokeWidth: 3,
+            width: buttonWidth, height: buttonHeight, 
+            fill: '#4CAF50', 
+            cornerRadius: 10, 
             shadowColor: 'black', shadowBlur: 5, shadowOpacity: 0.2, shadowOffset: {x: 2, y: 2}
         });
         const playText = new Konva.Text({
-            width: playButtonWidth, height: playButtonHeight, text: 'PLAY', 
-            fontSize: Math.min(stageWidth * 0.025, 25), fill: 'white',
-            align: 'center', verticalAlign: 'middle', fontStyle: 'bold',
+            width: buttonWidth, height: buttonHeight, text: 'PLAY', 
+            fontSize: Math.min(stageWidth * 0.08, 24), 
+            fill: 'white',
+            align: 'center', verticalAlign: 'middle', 
+            fontFamily: '"Press Start 2P"', 
             listening: false 
         });
         playButtonGroup.add(playRect, playText);
         this.choiceUIGroup.add(playButtonGroup); 
 
-        playRect.on('click tap', (evt) => {
+        playButtonGroup.on('click tap', (evt) => {
             evt.cancelBubble = true; 
             this.choiceUIGroup.visible(false); 
             this.showMinigameUI();           
         });
-        playRect.on('mouseenter', () => { stage.container().style.cursor = 'pointer'; playRect.fill('#3CB371'); this.layer.batchDraw(); });
-        playRect.on('mouseleave', () => { stage.container().style.cursor = 'default'; playRect.fill('#90EE90'); this.layer.batchDraw(); });
+        playButtonGroup.on('mouseenter', () => { 
+            this.stage.container().style.cursor = 'pointer'; 
+            playRect.fill('#45a049'); 
+            this.layer.batchDraw(); 
+        });
+        playButtonGroup.on('mouseleave', () => { 
+            this.stage.container().style.cursor = 'default'; 
+            playRect.fill('#4CAF50'); 
+            this.layer.batchDraw(); 
+        });
 
-        const skipButtonWidth = playButtonWidth;
-        const skipButtonHeight = playButtonHeight;
-        const skipButtonX = modalX + modalWidth * 0.7 - skipButtonWidth / 2; 
-        const skipButtonY = playButtonY; 
-
-        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: skipButtonY }); 
+        // SKIP BUTTON (Red)
+        const skipButtonGroup = new Konva.Group({ x: skipButtonX, y: buttonY }); 
         const skipRect = new Konva.Rect({
-            width: skipButtonWidth, height: skipButtonHeight, fill: '#F08080',
-            cornerRadius: 10, stroke: '#CD5C5C', strokeWidth: 3,
+            width: buttonWidth, height: buttonHeight, 
+            fill: '#e74c3c', 
+            cornerRadius: 10, 
             shadowColor: 'black', shadowBlur: 5, shadowOpacity: 0.2, shadowOffset: {x: 2, y: 2}
         });
         const skipText = new Konva.Text({
-            width: skipButtonWidth, height: skipButtonHeight, text: 'SKIP', 
-            fontSize: Math.min(stageWidth * 0.025, 25), fill: 'white',
-            align: 'center', verticalAlign: 'middle', fontStyle: 'bold',
+            width: buttonWidth, height: buttonHeight, text: 'SKIP', 
+            fontSize: Math.min(stageWidth * 0.08, 24), 
+            fill: 'white',
+            align: 'center', verticalAlign: 'middle', 
+            fontFamily: '"Press Start 2P"',
             listening: false 
         });
         skipButtonGroup.add(skipRect, skipText);
         this.choiceUIGroup.add(skipButtonGroup); 
 
-        skipRect.on('click tap', (evt) => {
+        skipButtonGroup.on('click tap', (evt) => {
             evt.cancelBubble = true; 
             this.choiceUIGroup.visible(false); 
             this.correctAnswers = 0;          
             this.endMinigame(true); 
         });
-        skipRect.on('mouseenter', () => { stage.container().style.cursor = 'pointer'; skipRect.fill('#CD5C5C'); this.layer.batchDraw(); });
-        skipRect.on('mouseleave', () => { stage.container().style.cursor = 'default'; skipRect.fill('#F08080'); this.layer.batchDraw(); });
+        skipButtonGroup.on('mouseenter', () => { 
+            this.stage.container().style.cursor = 'pointer'; 
+            skipRect.fill('#c0392b'); 
+            this.layer.batchDraw(); 
+        });
+        skipButtonGroup.on('mouseleave', () => { 
+            this.stage.container().style.cursor = 'default'; 
+            skipRect.fill('#e74c3c'); 
+            this.layer.batchDraw(); 
+        });
 
         this.choiceUIGroup.visible(true);
         this.layer.batchDraw();
     }
-
 
     private showMinigameUI(): void {
         this.choiceUIGroup.visible(false);

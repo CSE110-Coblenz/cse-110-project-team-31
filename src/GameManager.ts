@@ -23,6 +23,9 @@ export class GameManager {
   private player: PlayerState;
   private config = ConfigManager.getInstance().getConfig();
 
+  // FIXED: Added missing property to store orders
+  private customerOrders: any[] = [];
+
   // Minigame & Animation Instances
   private currentBakingMinigameInstance: BakingMinigame | null = null;
   private currentCleaningMinigame: CleaningMinigame | null = null;
@@ -129,7 +132,10 @@ export class GameManager {
       this.backgroundImage.width(this.stage.width());
       this.backgroundImage.height(this.stage.height());
     }
-    this.renderCurrentPhase();
+    // FIXED: Do NOT call renderCurrentPhase() here. 
+    // Calling it destroys the current screen state (resets forms, timers, etc.)
+    // Instead, just redraw the layer to update positions if needed.
+    this.layer.batchDraw();
   }
 
   private loadBackground(): void {
@@ -196,28 +202,44 @@ export class GameManager {
         this.currentBakingMinigameInstance = null;
     }
     if (this.currentCleaningMinigame) {
+      try {
         this.currentCleaningMinigame.cleanup();
-        this.currentCleaningMinigame = null;
+      } catch (e) { console.warn('Error cleaning cleaning minigame:', e); }
+      this.currentCleaningMinigame = null;
     }
     // Cleanup animations
     if (this.postBakingAnimation) {
+      try {
         this.postBakingAnimation.destroy();
-        this.postBakingAnimation = null;
+      } catch (e) { console.warn('Error destroying postBakingAnimation:', e); }
+      this.postBakingAnimation = null;
     }
     if (this.newDayAnimation) {
+      try {
         this.newDayAnimation.destroy();
-        this.newDayAnimation = null;
+      } catch (e) { console.warn('Error destroying newDayAnimation:', e); }
+      this.newDayAnimation = null;
     }
 
-    // Clear layer children except background if needed
-    const children = this.layer.getChildren().slice();
+    const children = this.layer.getChildren().slice(); 
     children.forEach(child => {
-        if (this.backgroundImage && child === this.backgroundImage) return;
+      try {
+        if (this.backgroundImage && child === this.backgroundImage) {
+          return;
+        }
         child.remove();
     });
+
+    try {
+      this.layer.draw();
+    } catch (e) {
+      console.warn('Error drawing layer after cleanup:', e);
+    }
   }
 
   private renderCurrentPhase(): void {
+    console.log('🎮 Rendering phase:', GamePhase[this.currentPhase]);
+
     this.cleanupCurrentPhase();
     this.updateBackgroundMusic();
 
@@ -228,10 +250,14 @@ export class GameManager {
     ];
 
     if (this.backgroundImage && !skipBackgroundPhases.includes(this.currentPhase)) {
-        if (!this.backgroundImage.getParent()) {
-            this.layer.add(this.backgroundImage);
-        }
+      if (!this.backgroundImage.getParent()) {
+        this.layer.add(this.backgroundImage);
+      }
+      try {
         this.backgroundImage.moveToBottom();
+      } catch (e) {
+        console.warn('Could not move background to bottom:', e);
+      }
     }
 
     switch (this.currentPhase) {
@@ -263,7 +289,28 @@ export class GameManager {
           this.player.currentDay, this.player.reputation,
           (totalDemand, orders) => {
             this.player.currentDayDemand = totalDemand;
-            this.customerOrders = Array.isArray(orders) ? orders : [];
+
+            // Defensive coding for customerOrders
+            if (!Array.isArray(customerOrders)) {
+              console.error('OrderScreen returned invalid customerOrders (expected Array):', customerOrders);
+              if (customerOrders && typeof customerOrders === 'object') {
+                if (Array.isArray((customerOrders as any).orders)) {
+                  this.customerOrders = (customerOrders as any).orders;
+                } else {
+                  try {
+                    const coerced = Object.values(customerOrders).filter((v) => v && typeof v === 'object');
+                    this.customerOrders = coerced.length ? (coerced as any) : [];
+                  } catch (e) {
+                    this.customerOrders = [];
+                  }
+                }
+              } else {
+                this.customerOrders = [];
+              }
+            } else {
+              this.customerOrders = customerOrders;
+            }
+
             this.previousPhase = this.currentPhase;
             this.currentPhase = GamePhase.RECIPE_BOOK;
             this.renderCurrentPhase();
@@ -305,7 +352,136 @@ export class GameManager {
         this.renderGameOverPhase(); // Fallback
         break;
     }
-    this.layer.draw();
+  }
+
+  private renderVictoryPhase(): void {
+    this.audioReady = true;
+
+    if (this.audioReady && !this.winPlayedOnce) {
+        this.winSound.currentTime = 0;
+        this.winSound.play().catch(()=>{});
+        this.winPlayedOnce = true;
+    }
+    new VictoryScreen(this.stage, this.layer, {
+      cashBalance: this.player.funds,
+      totalDaysPlayed: this.player.currentDay,
+      onReturnHome: () => {
+        this.previousPhase = GamePhase.VICTORY;
+        this.currentPhase = GamePhase.LOGIN;
+        this.resetGame(); 
+        this.renderCurrentPhase();
+      },
+    });
+  }
+
+  private renderLosePhase(): void {
+    this.audioReady = true;
+    if (this.audioReady) {
+      this.loseSound.currentTime = 0;
+      this.loseSound.play().catch(() => {});
+    }
+    new LoseScreen(this.stage, this.layer, {
+      cashBalance: this.player.funds,
+      totalDaysPlayed: this.player.currentDay,
+      onReturnHome: () => {
+        this.previousPhase = GamePhase.DEFEAT;
+        this.backgroundImage?.remove();   
+        this.layer.draw();
+        this.currentPhase = GamePhase.LOGIN;
+        this.resetGame();
+        this.renderCurrentPhase();
+      },
+    });
+  }
+
+  private resetGame(): void {
+    console.log('Resetting game state');
+    this.player = {
+      username: this.player.username, 
+      funds: this.config.startingFunds,
+      ingredients: new Map(),
+      breadInventory: [],
+      maxBreadCapacity: this.config.maxBreadCapacity,
+      currentDay: 1,
+      dishesToClean: 0,
+      reputation: 1.0,
+      currentDayDemand: 0,
+    };
+    this.daySales = 0;
+    this.dayExpenses = 0;
+    this.dayTips = 0;
+    this.customerOrders = [];
+  }
+
+  private renderPostBakingAnimation(): void {
+    const IMAGE_PATHS = [
+      '/20.png', '/21.png', '/22.png', '/23.png', '/24.png', '/25.png',
+      '/26.png', '/27.png', '/28.png', '/29.png', '/30.png', '/31.png'
+    ];
+
+    this.postBakingAnimation = new AnimationPlayer(
+      this.layer,
+      IMAGE_PATHS,
+      4,
+      0,
+      0,
+      this.stage.width(),
+      this.stage.height(),
+      false,
+      () => {
+        this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
+        this.currentPhase = GamePhase.CLEANING;
+        this.renderCurrentPhase();
+      }
+    );
+
+    this.postBakingAnimation.load().then(() => {
+        if (this.postBakingAnimation) {
+          this.postBakingAnimation.start();
+        }
+      }).catch((error) => {
+        console.error('Post-baking animation failed to load:', error);
+        this.postBakingAnimation = null;
+        this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
+        this.currentPhase = GamePhase.CLEANING;
+        this.renderCurrentPhase();
+      });
+  }
+
+  private renderNewDayAnimation(): void {
+    const IMAGE_PATHS = [
+      '/33.png', '/34.png', '/35.png', '/36.png', '/37.png', '/38.png',
+      '/39.png', '/40.png', '/41.png', '/42.png', '/43.png', '/44.png',
+      '/44.png', '/44.png', '/44.png'
+    ];
+
+    this.newDayAnimation = new AnimationPlayer(
+      this.layer,
+      IMAGE_PATHS,
+      2,
+      0,
+      0,
+      this.stage.width(),
+      this.stage.height(),
+      false,
+      () => {
+        this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
+        this.currentPhase = GamePhase.ORDER;
+        this.renderCurrentPhase();
+      }
+    );
+
+    this.newDayAnimation.load().then(() => {
+        if (this.newDayAnimation) {
+          this.newDayAnimation.start();
+        }
+      }).catch((error) => {
+        console.error('New day animation failed to load:', error);
+        this.newDayAnimation = null;
+        this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
+        this.currentPhase = GamePhase.ORDER;
+        this.renderCurrentPhase();
+      });
   }
 
   private renderShoppingPhase(): void {
