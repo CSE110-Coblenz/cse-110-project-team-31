@@ -540,10 +540,10 @@ export class CleaningMinigame {
             contentY += 30;
 
             this.mistakes.slice(0, 5).forEach(m => {
-                const line = `${m.question} = ${m.correctAnswer} (You: ${m.userAnswer})`;
+                const line = `${m.question} = ${m.correctAnswer} (Your answer: ${m.userAnswer})`;
                 const item = new Konva.Text({
                     x: box.x() + 30, y: contentY,
-                    text: line, fontSize: 16, fill: '#333', fontFamily: 'Nunito'
+                    text: line, fontSize: 16, fill: '#333', align: 'center', fontFamily: 'Nunito'
                 });
                 this.resultsUIGroup!.add(item);
                 contentY += 25;
