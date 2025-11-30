@@ -402,4 +402,88 @@ describe('HowToPlayScreen', () => {
       expect(() => howToPlayScreen.cleanup()).not.toThrow();
     });
   });
+
+  describe('Additional branches', () => {
+    it('handles resize when inactive and cancels queued frame', async () => {
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+        cb(0);
+        return 123;
+      });
+      const cancelSpy = vi.fn();
+      vi.stubGlobal('cancelAnimationFrame', cancelSpy);
+
+      (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => 'Instructions',
+      } as Response);
+
+      howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
+
+      // deactivate then call resize should early-return
+      howToPlayScreen.cleanup();
+      (howToPlayScreen as any).handleResize();
+      expect(cancelSpy).not.toHaveBeenCalled();
+
+      // re-activate and ensure cancelAnimationFrame is used when id exists
+      (howToPlayScreen as any).isActive = true;
+      (howToPlayScreen as any).animationFrameId = 999;
+      (howToPlayScreen as any).handleResize();
+      expect(cancelSpy).toHaveBeenCalledWith(999);
+    });
+
+    it('renders tips section and avoids drawing when screen deactivated mid-fetch', async () => {
+      (global.fetch as Mock).mockResolvedValue({
+        ok: true,
+        text: async () => 'intro text\nTips for Success:\nBe fast',
+      } as Response);
+
+      howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
+
+      await vi.waitFor(() => {
+        const calls = (layer.add as Mock).mock.calls;
+        const tipsHeader = calls.find(
+          (call) => call[0] instanceof Konva.Text && (call[0] as Konva.Text).text() === 'TIPS FOR SUCCESS'
+        )?.[0];
+        expect(tipsHeader).toBeDefined();
+      });
+
+      // deactivate and ensure late completions do not draw
+      (layer.draw as Mock).mockClear();
+      howToPlayScreen.cleanup();
+      await (howToPlayScreen as any).loadInstructions(800, 600, 10, 100, (howToPlayScreen as any).currentRenderId + 1);
+      expect(layer.draw).not.toHaveBeenCalled();
+    });
+
+    it('cleanup cancels animation frame if present', async () => {
+      (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => 'Instructions',
+      } as Response);
+      vi.stubGlobal('cancelAnimationFrame', vi.fn());
+
+      howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
+      (howToPlayScreen as any).animationFrameId = 777;
+      const cancelSpy = vi.spyOn(global as any, 'cancelAnimationFrame');
+      howToPlayScreen.cleanup();
+      expect(cancelSpy).toHaveBeenCalledWith(777);
+    });
+
+    it('handles resize with no existing frame and draws after instructions', async () => {
+      (global.fetch as Mock).mockResolvedValueOnce({
+        ok: true,
+        text: async () => 'Simple instructions',
+      } as Response);
+      vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+        cb(0);
+        return 42;
+      });
+
+      howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
+      const destroySpy = vi.spyOn(layer, 'destroyChildren');
+      (howToPlayScreen as any).animationFrameId = null;
+      (howToPlayScreen as any).handleResize();
+      await vi.waitFor(() => expect(layer.draw).toHaveBeenCalled());
+      expect(destroySpy).toHaveBeenCalled();
+    });
+  });
 });

@@ -55,6 +55,8 @@ function createKonvaMock() {
     shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
     opacity = this.accessor("opacity", 1);
     cornerRadius = this.accessor("cornerRadius", 0);
+    shadowOpacity = this.accessor("shadowOpacity", 0);
+    shadowColor = this.accessor("shadowColor", "");
     fontFamily = this.accessor("fontFamily", "");
     fontSize = this.accessor("fontSize", 16);
     fontStyle = this.accessor("fontStyle", "");
@@ -168,5 +170,99 @@ describe("LoginScreen basic flow", () => {
 
     screen.cleanup();
     expect(layer.draw).toHaveBeenCalled();
+  });
+
+  it("blocks input when not focused and shows alert on empty enter/start", () => {
+    const screen: any = new LoginScreen(stage as any, layer as any, onLogin);
+    const alertSpy = vi.spyOn(global, "alert" as any).mockImplementation(() => {});
+
+    // no focus -> handleKeyPress should bail
+    screen.handleKeyPress?.({ key: "A" } as KeyboardEvent);
+    expect(screen.username || "").toBe("");
+
+    // focus then pressing enter with empty username triggers alert
+    screen.focusInput();
+    screen.username = "";
+    screen.handleKeyPress?.({ key: "Enter" } as KeyboardEvent);
+    expect(alertSpy).toHaveBeenCalled();
+
+    // start button click with empty username also alerts
+    const signGroup = layer.find()[layer.find().length - 1];
+    signGroup.fire("click");
+    expect(alertSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("toggles hover styles on start button and handles resize cleanup", () => {
+    const screen: any = new LoginScreen(stage as any, layer as any, onLogin);
+    const signGroup = layer.find()[layer.find().length - 1];
+    const board = signGroup.find()[1];
+
+    signGroup.fire("mouseenter");
+    expect(stage.container().style.cursor).toBe("pointer");
+    expect(board.shadowBlur()).toBe(20);
+
+    signGroup.fire("mouseleave");
+    expect(stage.container().style.cursor).toBe("default");
+    expect(board.shadowBlur()).toBe(8);
+
+    // simulate an existing animation frame and cursor interval for handleResize
+    (global as any).cancelAnimationFrame = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 101;
+    });
+    screen.animationFrameId = 55;
+    screen.cursorInterval = 44;
+    screen.handleResize();
+    expect((global as any).cancelAnimationFrame).toHaveBeenCalledWith(55);
+    expect(layer.destroyChildren).toHaveBeenCalled();
+  });
+
+  it("skips background draw when layer cleared before load", () => {
+    // custom Image to keep instance and trigger onload manually
+    const created: any[] = [];
+    vi.stubGlobal(
+      "Image",
+      class {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        width = 200;
+        height = 100;
+        constructor() {
+          created.push(this);
+        }
+        set src(_: string) {
+          this.onload?.();
+        }
+      }
+    );
+
+    const screen: any = new LoginScreen(stage as any, layer as any, onLogin);
+    // first load already ran, clear children and keep loginBackground
+    layer.children = [];
+    const bgInstance = created[created.length - 1];
+    bgInstance?.onload?.();
+    expect(layer.children.length).toBe(0);
+  });
+
+  it("restores focus on resize and runs blinking interval plus successful start click", () => {
+    vi.useFakeTimers();
+    const screen: any = new LoginScreen(stage as any, layer as any, onLogin);
+
+    // focus input, then trigger resize rebuild with rAF
+    screen.focusInput();
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 22;
+    });
+    screen.handleResize();
+    vi.runOnlyPendingTimers(); // run blinking interval
+
+    // start button click with username set should call onLogin
+    screen.username = "Player1";
+    const signGroup = layer.find()[layer.find().length - 1];
+    signGroup.fire("click");
+    expect(onLogin).toHaveBeenCalledWith("Player1");
+    vi.useRealTimers();
   });
 });
