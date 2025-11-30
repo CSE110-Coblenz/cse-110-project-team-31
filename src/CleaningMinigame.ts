@@ -545,7 +545,7 @@ export class CleaningMinigame {
                     x: box.x() + 30, y: contentY,
                     text: line, fontSize: 16, fill: '#333', fontFamily: 'Arial'
                 });
-                this.resultsUIGroup.add(item);
+                this.resultsUIGroup!.add(item);
                 contentY += 25;
             });
 
