@@ -202,9 +202,9 @@ describe("UI component coverage", () => {
     buttonGroup.fire("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
     buttonGroup.fire("mouseleave");
-    buttonGroup.fire("click tap");
-    buttonGroup.fire("click tap");
-    buttonGroup.fire("click tap");
+    buttonGroup.fire("click");
+    buttonGroup.fire("click");
+    buttonGroup.fire("click");
     expect(shuffle.getShufflesRemaining()).toBe(0);
     expect(buttonCircle.fill()).toBe("#95a5a6");
     expect(onShuffle).toHaveBeenCalledTimes(3);
@@ -282,12 +282,16 @@ describe("UI component coverage", () => {
       totalDaysPlayed: 4,
       onReturnHome: onReturn,
     });
-    const button = layer
-      .getChildren()
-      .find((c: any) => c.handlers?.has("click"));
-    button?.fire("mouseenter");
-    button?.fire("mouseleave");
-    button?.fire("click");
+    const button = layer.getChildren().find((c: any) => {
+      const keys = [...(c.handlers?.keys?.() ?? [])];
+      return keys.some((k) => k.includes("click"));
+    });
+    expect(button).toBeTruthy();
+    button!.fire("mouseenter");
+    button!.fire("mouseleave");
+    button!.fire(
+      (button as any).handlers?.has("click tap") ? "click tap" : "click"
+    );
     expect(onReturn).toHaveBeenCalledTimes(1);
   });
 

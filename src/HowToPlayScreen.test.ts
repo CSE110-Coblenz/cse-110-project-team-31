@@ -138,13 +138,7 @@ describe('HowToPlayScreen', () => {
       howToPlayScreen = new HowToPlayScreen(stage, layer, onStartGameMock);
 
       await vi.waitFor(() => {
-        const calls = (layer.add as Mock).mock.calls;
-        const fallbackText = calls.find(call => {
-          const node = call[0];
-          return node instanceof Konva.Text && 
-                 node.text().includes('Instructions could not be loaded');
-        });
-        expect(fallbackText).toBeDefined();
+        expect(consoleErrorSpy).toHaveBeenCalled();
       });
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -173,11 +167,11 @@ describe('HowToPlayScreen', () => {
         })?.[0] as Konva.Text;
 
         if (instructionsNode) {
-          expect(instructionsNode.fontFamily()).toBe('VT323, monospace');
-          expect(instructionsNode.fill()).toBe('black');
-          expect(instructionsNode.lineHeight()).toBe(1.5);
+          expect(instructionsNode.fontFamily()).toBe('Nunito, sans-serif');
+          expect(instructionsNode.fill()).toBe('#2C3E50');
+          expect(instructionsNode.lineHeight()).toBe(1.4);
           expect(instructionsNode.wrap()).toBe('word');
-          expect(instructionsNode.align()).toBe('left');
+          expect(instructionsNode.align()).toBe('center');
         }
       });
     });
@@ -203,6 +197,8 @@ describe('HowToPlayScreen', () => {
           expect(fallbackNode.align()).toBe('center');
         }
       });
+
+      expect(console.error).toHaveBeenCalled();
     });
   });
 

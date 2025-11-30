@@ -282,12 +282,12 @@ describe("GameManager coverage", () => {
     ]);
     gm.player.currentDayDemand = 2;
     gm.renderBakingPhase();
-    // trigger baking completion
-    gm.onBakingComplete({ correctAnswers: 2 }, false);
+    // trigger baking completion via minigame callback
+    gm.currentBakingMinigameInstance?.cb({ correctAnswers: 2 }, false);
 
     // Cleaning completion paths
-    gm.onCleaningComplete({ correctAnswers: 0 }, true);
-    gm.onCleaningComplete({ correctAnswers: 5 }, false);
+    gm.currentCleaningMinigame?.cb({ correctAnswers: 0 }, true);
+    gm.currentCleaningMinigame?.cb({ correctAnswers: 5 }, false);
 
     // Summary outcome branches
     gm.player.funds = 200;

@@ -5,6 +5,7 @@ class FakeStage {
   private readonly widthValue: number;
   private readonly heightValue: number;
   private readonly containerElement = { style: { cursor: "default" } };
+  private readonly children: unknown[] = [];
 
   constructor(widthValue: number, heightValue: number) {
     this.widthValue = widthValue;
@@ -21,6 +22,10 @@ class FakeStage {
 
   container() {
     return this.containerElement;
+  }
+
+  add(node: unknown) {
+    this.children.push(node);
   }
 }
 
@@ -65,6 +70,18 @@ vi.mock("konva", () => {
 
     on(event: string, handler: Handler) {
       this.handlers.set(event, handler);
+    }
+
+    destroy() {}
+  }
+
+  class FakeLayer extends FakeNode {
+    readonly children: unknown[] = [];
+    readonly draw = vi.fn();
+
+    add(...nodes: unknown[]) {
+      this.children.push(...nodes);
+      return this;
     }
 
     destroy() {}
@@ -124,14 +141,26 @@ vi.mock("konva", () => {
     destroy() {}
   }
 
-  class FakeRect extends FakeNode {}
+  class FakeRect extends FakeNode {
+    readonly handlers = new Map<string, Handler>();
+    on(event: string, handler: Handler) {
+      this.handlers.set(event, handler);
+    }
+    trigger(event: string) {
+      this.handlers.get(event)?.();
+    }
+  }
+
+  class FakeLine extends FakeNode {}
 
   return {
     default: {
+      Layer: FakeLayer,
       Group: FakeGroup,
       Circle: FakeCircle,
       Text: FakeText,
       Rect: FakeRect,
+      Line: FakeLine,
     },
   };
 });
@@ -172,15 +201,17 @@ describe("InfoButton", () => {
 
     const texts = konvaState.texts.map((entry) => entry.config.text);
     expect(texts).toContain("Custom info here");
-    const closeButton = konvaState.texts.find((entry) => entry.config.text === "✕");
-    expect(closeButton).toBeTruthy();
+    const closeGroup = konvaState.groups.find((entry) =>
+      entry.handlers.has("click")
+    );
+    expect(closeGroup).toBeTruthy();
 
-    closeButton?.handlers.get("mouseenter")?.();
+    closeGroup?.handlers.get("mouseenter")?.();
     expect(stage.container().style.cursor).toBe("pointer");
-    closeButton?.handlers.get("mouseleave")?.();
+    closeGroup?.handlers.get("mouseleave")?.();
     expect(stage.container().style.cursor).toBe("default");
 
-    closeButton?.handlers.get("click")?.();
+    closeGroup?.handlers.get("click")?.();
     expect(stage.container().style.cursor).toBe("default");
   });
 
@@ -201,3 +232,4 @@ describe("InfoButton", () => {
     expect(texts).toContain("loaded text");
   });
 });
+

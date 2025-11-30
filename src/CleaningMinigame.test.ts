@@ -40,8 +40,15 @@ type RectEntry = {
   trigger: (event: string, evt?: { cancelBubble?: boolean }) => void;
 };
 
+type Handler = (evt?: { cancelBubble?: boolean }) => void;
+
 const konvaState = vi.hoisted(() => ({
-  groups: [] as Array<{ config: Record<string, unknown>; visible: () => boolean }>,
+  groups: [] as Array<{
+    config: Record<string, unknown>;
+    visible: () => boolean;
+    instance: any;
+    handlers: Map<string, Handler>;
+  }>,
   rects: [] as RectEntry[],
   texts: [] as Array<{ config: Record<string, unknown> }>,
 }));
@@ -109,6 +116,8 @@ vi.mock("konva", () => {
       konvaState.groups.push({
         config: this.config,
         visible: () => this.visible(),
+        instance: this,
+        handlers: this.handlers,
       });
     }
 
@@ -130,6 +139,10 @@ vi.mock("konva", () => {
 
     destroy() {
       this.config.destroyed = true;
+    }
+
+    moveToTop() {
+      // noop for mock
     }
 
     on(event: string, handler: Handler) {
@@ -168,6 +181,26 @@ vi.mock("konva", () => {
     trigger(event: string, evt: { cancelBubble?: boolean } = {}) {
       const handler = this.handlers.get(event);
       handler?.(evt);
+    }
+
+    x(value?: number) {
+      if (typeof value === "number") this.config.x = value;
+      return (this.config.x as number) ?? 0;
+    }
+
+    y(value?: number) {
+      if (typeof value === "number") this.config.y = value;
+      return (this.config.y as number) ?? 0;
+    }
+
+    width(value?: number) {
+      if (typeof value === "number") this.config.width = value;
+      return (this.config.width as number) ?? 0;
+    }
+
+    height(value?: number) {
+      if (typeof value === "number") this.config.height = value;
+      return (this.config.height as number) ?? 0;
     }
   }
 
@@ -269,23 +302,25 @@ describe("CleaningMinigame", () => {
 
     const minigame = new CleaningMinigame(stage as never, layer as never, 12, onComplete);
 
-    const skipRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#F08080"
+    const skipGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.fill === "#e74c3c"
+      )
     );
-    expect(skipRect).toBeTruthy();
+    expect(skipGroup).toBeTruthy();
 
-    skipRect!.trigger("mouseenter");
+    skipGroup!.instance.trigger("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
-    skipRect!.trigger("mouseleave");
+    skipGroup!.instance.trigger("mouseleave");
     expect(stage.container().style.cursor).toBe("default");
-    skipRect!.trigger("click tap");
+    skipGroup!.instance.trigger("click tap", { cancelBubble: false });
 
     vi.advanceTimersByTime(0);
     expect(onComplete).toHaveBeenCalledWith(
       {
         correctAnswers: 0,
         totalProblems: 0,
-        timeRemaining: 0,
+        timeRemaining: 15,
       },
       true
     );
@@ -305,11 +340,13 @@ describe("CleaningMinigame", () => {
     randomQueue.push(...Array(10).fill(0));
     const minigame = new CleaningMinigame(stage as never, layer as never, 15, onComplete);
 
-    const playRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#90EE90"
+    const playGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.fill === "#4CAF50"
+      )
     );
-    expect(playRect).toBeTruthy();
-    playRect!.trigger("click tap");
+    expect(playGroup).toBeTruthy();
+    playGroup!.instance.trigger("click tap", { cancelBubble: false });
 
     const minigameGroup = konvaState.groups.find(
       (group) => group.config.name === "minigameUI"
@@ -329,6 +366,12 @@ describe("CleaningMinigame", () => {
       vi.advanceTimersByTime(500);
     }
 
+    const continueGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.text === "CONTINUE"
+      )
+    );
+    continueGroup?.instance.trigger("click");
     expect(onComplete).toHaveBeenCalledWith(
       {
         correctAnswers: 15,

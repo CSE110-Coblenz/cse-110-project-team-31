@@ -40,8 +40,15 @@ type RectEntry = {
   trigger: (event: string, evt?: { cancelBubble?: boolean }) => void;
 };
 
+type Handler = (evt?: { cancelBubble?: boolean }) => void;
+
 const konvaState = vi.hoisted(() => ({
-  groups: [] as Array<{ config: Record<string, unknown>; visible: () => boolean }>,
+  groups: [] as Array<{
+    config: Record<string, unknown>;
+    visible: () => boolean;
+    instance: any;
+    handlers: Map<string, Handler>;
+  }>,
   rects: [] as RectEntry[],
   texts: [] as Array<{ config: Record<string, unknown> }>,
 }));
@@ -164,6 +171,8 @@ vi.mock("konva", () => {
       konvaState.groups.push({
         config: this.config,
         visible: () => this.visible(),
+        instance: this,
+        handlers: this.handlers,
       });
     }
 
@@ -185,6 +194,10 @@ vi.mock("konva", () => {
 
     destroy() {
       this.config.destroyed = true;
+    }
+
+    moveToTop() {
+      // noop for mock
     }
 
     on(event: string, handler: Handler) {
@@ -223,6 +236,26 @@ vi.mock("konva", () => {
     trigger(event: string, evt: { cancelBubble?: boolean } = {}) {
       const handler = this.handlers.get(event);
       handler?.(evt);
+    }
+
+    x(value?: number) {
+      if (typeof value === "number") this.config.x = value;
+      return (this.config.x as number) ?? 0;
+    }
+
+    y(value?: number) {
+      if (typeof value === "number") this.config.y = value;
+      return (this.config.y as number) ?? 0;
+    }
+
+    width(value?: number) {
+      if (typeof value === "number") this.config.width = value;
+      return (this.config.width as number) ?? 0;
+    }
+
+    height(value?: number) {
+      if (typeof value === "number") this.config.height = value;
+      return (this.config.height as number) ?? 0;
     }
   }
 
@@ -335,18 +368,20 @@ describe("BakingMinigame", () => {
     );
     expect(choiceGroup?.visible()).toBe(true);
 
-    const skipRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#F08080"
+    const skipGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.fill === "#e74c3c"
+      )
     );
-    expect(skipRect).toBeTruthy();
+    expect(skipGroup).toBeTruthy();
 
-    skipRect!.trigger("mouseenter");
+    skipGroup!.instance.trigger("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
-    skipRect!.trigger("mouseleave");
+    skipGroup!.instance.trigger("mouseleave");
     expect(stage.container().style.cursor).toBe("default");
 
     const skipEvent = { cancelBubble: false };
-    skipRect!.trigger("click tap", skipEvent);
+    skipGroup!.instance.trigger("click tap", skipEvent);
     expect(skipEvent.cancelBubble).toBe(true);
 
     vi.advanceTimersByTime(150);
@@ -382,16 +417,18 @@ describe("BakingMinigame", () => {
     const animation = animationState.instances[0];
     animation.triggerComplete();
 
-    const playRect = konvaState.rects.find(
-      (rect) => rect.config.fill === "#90EE90"
+    const playGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.fill === "#4CAF50"
+      )
     );
-    expect(playRect).toBeTruthy();
+    expect(playGroup).toBeTruthy();
 
-    playRect!.trigger("mouseenter");
+    playGroup!.instance.trigger("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
-    playRect!.trigger("mouseleave");
+    playGroup!.instance.trigger("mouseleave");
     expect(stage.container().style.cursor).toBe("default");
-    playRect!.trigger("click tap", { cancelBubble: false });
+    playGroup!.instance.trigger("click tap", { cancelBubble: false });
 
     const choiceGroup = konvaState.groups.find(
       (group) => group.config.name === "choiceUI"
@@ -418,7 +455,7 @@ describe("BakingMinigame", () => {
     const scoreText = konvaState.texts.find((text) =>
       (text.config.text as string)?.startsWith("Tips Earned")
     );
-    expect(scoreText?.config.text).toBe("Tips Earned: $1");
+    expect(scoreText?.config.text).toBe("Tips Earned: $5");
 
     handler({ key: "2" });
     handler({ key: "Enter" });
@@ -432,6 +469,12 @@ describe("BakingMinigame", () => {
     );
 
     vi.advanceTimersByTime(500);
+    const continueGroup = konvaState.groups.find((group) =>
+      group.instance.children.some(
+        (child: any) => (child as any).config?.text === "CONTINUE"
+      )
+    );
+    continueGroup?.instance.trigger("click");
     expect(onComplete).toHaveBeenCalledWith(
       {
         correctAnswers: 1,

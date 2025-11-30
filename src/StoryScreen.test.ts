@@ -32,6 +32,7 @@ class FakeLayer {
   readonly addedNodes: unknown[] = [];
   readonly draw = vi.fn();
   readonly destroyChildren = vi.fn();
+  readonly batchDraw = vi.fn();
 
   add(node: unknown) {
     this.addedNodes.push(node);
@@ -137,11 +138,22 @@ describe("StoryScreen", () => {
   beforeEach(() => {
     createdLabels.length = 0;
     vi.useFakeTimers();
+    (globalThis as any).window = {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      setInterval: (fn: (...args: any[]) => void, ms?: number) =>
+        setInterval(fn, ms),
+      clearInterval: (id: ReturnType<typeof setInterval>) => clearInterval(id),
+      requestAnimationFrame: (fn: FrameRequestCallback) => setTimeout(fn, 0),
+      cancelAnimationFrame: (id: ReturnType<typeof setTimeout>) =>
+        clearTimeout(id),
+    };
   });
 
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    delete (globalThis as any).window;
   });
 
   it("covers the full flow", () => {
