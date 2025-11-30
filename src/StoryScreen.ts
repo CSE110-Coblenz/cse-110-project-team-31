@@ -81,7 +81,7 @@ export class StoryScreen {
     const config = ConfigManager.getInstance().getConfig();
     const winAmount = config.winThreshold;
 
-    const fullText = `Today is a sad day for Owl. He lost his job, and now lives in a small trailer park. Owl dreams of buying a cozy little house, but he needs $${winAmount} to make it happen. ${username}, please help Owl get back on his feet by baking some cookies!`;
+    const fullText = `Today is a sad day for Owl. He lost his job and now lives in a small trailer park. Owl dreams of buying a cozy little house, but he needs $${winAmount} to make it happen. ${username}, please help Owl get back on his feet by baking some cookies!`;
 
     // Button 
     const buttonWidth = Math.min(stageWidth * 0.45, 250);
