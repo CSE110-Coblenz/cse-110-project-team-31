@@ -1,3 +1,4 @@
+// Layout note: mocks first, then shared setup, followed by three scenario tests (tips path, error path, debounce) and extra coverage for no-tips + volume callback so every branch is easy to narrate to a TA.
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HowToPlayScreen } from "./HowToPlayScreen";
@@ -134,6 +135,26 @@ describe("HowToPlayScreen", () => {
         return 1;
       });
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
+  });
+
+  it("renders without tips, applies global volume callback, and respects setVolume clamp", async () => {
+    fetchMock.mockResolvedValueOnce({ text: async () => "Only instructions" }); // no tips header triggers else branch
+    const setGlobalSpy = vi.fn(); // spy on global setter call
+    (window as any).setGlobalBgmVolume = setGlobalSpy; // inject setter used in setupUI callback
+
+    const screen: any = new HowToPlayScreen(stage as any, layer as any, vi.fn()); // create screen
+    await Promise.resolve(); // let fetch resolve
+
+    screen.volumeChangeCallback = vi.fn(); // set extra callback path
+    screen.setVolume(2); // clamp through public setter (also hits guard when slider exists)
+    expect(screen.volume).toBe(1); // clamped to max
+
+    // simulate VolumeSlider onVolumeChange firing with mid value
+    const sliderCb = (screen as any).volumeSlider?.onVolumeChange as (v: number) => void;
+    sliderCb?.(0.25);
+    expect(setGlobalSpy).toHaveBeenCalledWith(0.25); // global setter invoked
+    expect(screen.volumeChangeCallback).toHaveBeenCalledWith(0.25); // per-screen callback invoked
+    expect(layer.draw).toHaveBeenCalled(); // draw at least once during setup
   });
 
   it("renders instructions with tips, buttons, and supports hover/click", async () => {
