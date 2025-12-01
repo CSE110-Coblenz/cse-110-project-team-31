@@ -13,6 +13,9 @@ import { AnimationPlayer } from './AnimationPlayer';
 import { StoryScreen } from './StoryScreen';
 import { VictoryScreen } from './VictoryScreen';
 import { LoseScreen } from './LoseScreen';
+import { VolumeSlider } from './ui/Volumeslider';
+
+
 
 export class GameManager {  
 
@@ -49,6 +52,10 @@ export class GameManager {
   private audioUnlocked = false;
   private winPlayedOnce = false;
   
+  private volumeSlider?: VolumeSlider;
+  private bgmVolume: number = 0.5;
+
+
   // Game Logic Constants
   private cookieRecipe: Map<string, number> = new Map([
     ['Flour', 3],
@@ -71,6 +78,8 @@ export class GameManager {
     [this.bgmIntro, this.bgmStory, this.bgmMain, this.bgmAnim, this.bgmEndDay, this.bgmbaking].forEach(a => {
         if(a) { a.loop = true; a.volume = 0.4; }
     });
+    (window as any).getGlobalBgmVolume = () => this.bgmVolume;
+    (window as any).setGlobalBgmVolume = (v: number) => this.setBgmVolume(v);
 
     const unlockAudio = () => {
       if (this.audioUnlocked) return;
@@ -81,6 +90,14 @@ export class GameManager {
     };
     window.addEventListener('pointerdown', unlockAudio);
     window.addEventListener('keydown', unlockAudio);
+
+    window.addEventListener('bgm-volume-change', (e: Event) => {
+    const v = (e as CustomEvent<number>).detail;
+    this.setBgmVolume(v);
+    });
+    
+  // Optional: make sure audio starts with current bgmVolume
+  this.setBgmVolume(this.bgmVolume);
 
     this.stage = new Konva.Stage({
       container,
@@ -108,7 +125,7 @@ export class GameManager {
     window.addEventListener('resize', () => this.handleResize(container));
     this.loadBackground();
   }
-
+  
   // --- Exposed for Testing ---
   // The test "should correctly calculate the cost of one cookie" uses this.
   private getCostOfOneCookie(): number {
@@ -134,7 +151,7 @@ export class GameManager {
     // Instead, just redraw the layer to update positions if needed.
     this.layer.batchDraw();
   }
-
+  
   private loadBackground(): void {
     const imageObj = new Image();
     imageObj.onload = () => {
@@ -173,6 +190,24 @@ export class GameManager {
 
     tracks[track]?.play().catch(() => {});
   }
+
+  private setBgmVolume(v: number): void {
+    this.bgmVolume = v;
+
+    const bgms = [
+      this.bgmIntro,
+      this.bgmStory,
+      this.bgmMain,
+      this.bgmAnim,
+      this.bgmEndDay,
+      this.bgmbaking,
+    ];
+
+    bgms.forEach(a => {
+      if (a) a.volume = v;
+    });
+  }
+
 
   private updateBackgroundMusic(): void {
     if (!this.audioUnlocked) return;
@@ -277,11 +312,22 @@ export class GameManager {
         });
         break;
       case GamePhase.HOW_TO_PLAY:
-        new HowToPlayScreen(this.stage, this.layer, () => {
-          this.previousPhase = this.currentPhase;
-          this.currentPhase = GamePhase.ORDER;
-          this.renderCurrentPhase();
-        });
+        const screen = new HowToPlayScreen(
+          this.stage,
+          this.layer,
+          () => {
+            this.previousPhase = this.currentPhase;
+            this.currentPhase = GamePhase.ORDER;
+            this.renderCurrentPhase();
+          }
+        );
+
+        // set initial volume and callback, AFTER construction
+        screen.setVolume(this.bgmVolume);
+
+        screen.volumeChangeCallback = (v: number) => {
+        this.setBgmVolume(v);
+        };
         break;
       case GamePhase.ORDER:
         new OrderScreen(

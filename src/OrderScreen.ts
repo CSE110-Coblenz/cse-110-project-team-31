@@ -49,6 +49,7 @@ export class OrderScreen {
             window.location.href = '/login.html';
         });
         new InfoButton(this.stage, this.layer);
+        
 
         this.layer.batchDraw(); 
     }

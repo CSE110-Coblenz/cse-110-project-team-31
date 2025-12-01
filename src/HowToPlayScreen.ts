@@ -1,5 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
+import { VolumeSlider } from './ui/Volumeslider';
+
 
 export class HowToPlayScreen {
     private layer: Konva.Layer;
@@ -8,6 +10,16 @@ export class HowToPlayScreen {
     private animationFrameId: number | null = null;
     private currentRenderId: number = 0;
     private isActive: boolean = true; 
+
+    private volumeSlider?: VolumeSlider;
+    public volume: number = 0.5;  // current value (0–1)
+    public volumeChangeCallback?: (v: number) => void;
+    public setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.volumeSlider) {
+      this.volumeSlider.setVolume(this.volume); // move knob to match
+    }
+  }
 
     constructor(stage: Konva.Stage, layer: Konva.Layer, onStartGame: () => void) {
         this.stage = stage;
@@ -18,6 +30,7 @@ export class HowToPlayScreen {
         
         this.setupUI();
         window.addEventListener('resize', this.handleResize);
+        
     }
 
     private handleResize = (): void => {
@@ -98,6 +111,40 @@ export class HowToPlayScreen {
 
         this.createStartButton(stageWidth, stageHeight, modalY, modalH);
 
+
+        const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
+        const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
+
+        let initialVolume = 0.5;
+        if (typeof getGlobalBgmVolume === 'function') {
+            const v = getGlobalBgmVolume();
+            if (typeof v === 'number' && !Number.isNaN(v)) {
+                initialVolume = Math.max(0, Math.min(1, v));
+            }
+        }
+
+        // keep local field in sync
+        this.volume = initialVolume;
+
+        this.volumeSlider = new VolumeSlider(
+            this.stage,
+            this.layer,
+            initialVolume,
+            (v: number) => {
+                this.volume = v;
+
+                // update global BGM volume in GameManager
+                if (typeof setGlobalBgmVolume === 'function') {
+                    setGlobalBgmVolume(v);
+                }
+
+                // if you still want a per-screen callback, keep this:
+                if (this.volumeChangeCallback) {
+                    this.volumeChangeCallback(v);
+                }
+            }
+        );
+        
         new ExitButton(this.stage, this.layer, () => {
             this.cleanup();
             window.location.href = '/login.html';

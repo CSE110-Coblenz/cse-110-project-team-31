@@ -1,4 +1,6 @@
 import Konva from "konva";
+import { VolumeSlider } from './Volumeslider';
+
 
 export class InfoButton {
     private group: Konva.Group;
@@ -7,10 +9,23 @@ export class InfoButton {
     private isPopupOpen: boolean = false;
     private customText?: string;
 
+    private volumeSlider?: VolumeSlider;
+    public volume: number = 0.5;                         // 0–1
+    public volumeChangeCallback?: (v: number) => void;
+
+    public setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.volumeSlider) {
+      this.volumeSlider.setVolume(this.volume);
+    }
+    }
+
     constructor(stage: Konva.Stage, layer: Konva.Layer, customText?: string) {
         this.stage = stage;
         this.layer = layer;
         this.customText = customText;
+
+        
 
         // --- FIX 1: Make the button smaller ---
         // Reduced from 0.035 to 0.025
@@ -225,9 +240,36 @@ export class InfoButton {
         // Add everything to modal layer
         modalGroup.add(overlay, paper, highlight, crease, title, content, closeGroup);
         modalLayer.add(modalGroup);
-        
+        const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
+        const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
+
+        // If GameManager already set a global volume, use that, otherwise fallback to 0.5
+        let initialVolume = 0.5;
+        if (typeof getGlobalBgmVolume === 'function') {
+            const v = getGlobalBgmVolume();
+            if (typeof v === 'number' && !Number.isNaN(v)) {
+            initialVolume = Math.max(0, Math.min(1, v));
+            }
+        }
         // Add modal layer to stage
         this.stage.add(modalLayer);
+        this.volumeSlider = new VolumeSlider(
+        this.stage,
+        modalLayer,
+        initialVolume,
+        (v: number) => {
+            this.volume = v;
+
+            // Call per-instance callback if someone set it (optional)
+            if (typeof setGlobalBgmVolume === 'function') {
+                setGlobalBgmVolume(v);
+            }
+            // Global event so GameManager can react
+            window.dispatchEvent(
+            new CustomEvent<number>('bgm-volume-change', { detail: v })
+            );
+        }
+        );
         modalLayer.draw();
     }
 }

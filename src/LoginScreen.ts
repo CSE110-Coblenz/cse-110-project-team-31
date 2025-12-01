@@ -1,10 +1,20 @@
 import Konva from 'konva';
+import { VolumeSlider } from './ui/Volumeslider';
 
 export class LoginScreen {
     private layer: Konva.Layer;
     private stage: Konva.Stage;
     private onLogin: (username: string) => void;
+    private volumeSlider?: VolumeSlider;
+    public volume: number = 0.5;
 
+    public setVolume(v: number): void {
+        this.volume = Math.max(0, Math.min(1, v));
+        if (this.volumeSlider) {
+            this.volumeSlider.setVolume(this.volume);
+        }
+    }
+    
     private username: string = '';
     private inputFocused: boolean = false;
 
@@ -50,6 +60,31 @@ export class LoginScreen {
     private setupUI(): void {
         const stageWidth = this.stage.width();
         const stageHeight = this.stage.height();
+
+        const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
+        const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
+
+        let initialVolume = 0.5;
+        if (typeof getGlobalBgmVolume === 'function') {
+        const v = getGlobalBgmVolume();
+        if (typeof v === 'number' && !Number.isNaN(v)) {
+            initialVolume = Math.max(0, Math.min(1, v));
+        }
+        }
+
+        this.volume = initialVolume;
+
+        this.volumeSlider = new VolumeSlider(
+        this.stage,
+        this.layer,
+        initialVolume,
+        (v: number) => {
+            this.volume = v;
+            if (typeof setGlobalBgmVolume === 'function') {
+            setGlobalBgmVolume(v);     // tell GameManager to update audio
+            }
+        }
+        );
 
         // BACKGROUND IMAGE
         const bgImg = new Image();

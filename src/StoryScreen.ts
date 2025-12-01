@@ -1,10 +1,21 @@
 import Konva from "konva";
 import { ConfigManager } from "./config"; // Import ConfigManager
+import { VolumeSlider } from './ui/Volumeslider';
 
 export class StoryScreen {
   private stage: Konva.Stage;
   private layer: Konva.Layer;
   private onComplete: () => void;
+
+  private volumeSlider?: VolumeSlider;
+  public volume: number = 0.5;
+
+  public setVolume(v: number): void {
+    this.volume = Math.max(0, Math.min(1, v));
+    if (this.volumeSlider) {
+      this.volumeSlider.setVolume(this.volume);
+    }
+  }
   
   // Resizing & State variables
   private resizeHandler: () => void;
@@ -47,6 +58,32 @@ export class StoryScreen {
     const cursorDefault = "default";
     const cursorPointer = "pointer";
     const bgSrc = "/Storyline.png";
+
+
+    const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
+    const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
+
+    let initialVolume = 0.5;
+    if (typeof getGlobalBgmVolume === 'function') {
+      const v = getGlobalBgmVolume();
+      if (typeof v === 'number' && !Number.isNaN(v)) {
+        initialVolume = Math.max(0, Math.min(1, v));
+      }
+    }
+
+    this.volume = initialVolume;
+
+    this.volumeSlider = new VolumeSlider(
+      this.stage,
+      this.layer,
+      initialVolume,
+      (v: number) => {
+        this.volume = v;
+        if (typeof setGlobalBgmVolume === 'function') {
+          setGlobalBgmVolume(v);
+        }
+      }
+    );
 
     // Responsive Constants
     const stageWidth = this.stage.width();
@@ -298,6 +335,31 @@ export class StoryScreen {
     }, this.layer);
     
     this.rainAnimation.start();
+    const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
+    const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
+
+    let initialVolume = 0.5;
+    if (typeof getGlobalBgmVolume === 'function') {
+      const v = getGlobalBgmVolume();
+      if (typeof v === 'number' && !Number.isNaN(v)) {
+        initialVolume = Math.max(0, Math.min(1, v));
+      }
+    }
+
+    this.volume = initialVolume;
+
+    this.volumeSlider = new VolumeSlider(
+      this.stage,
+      this.layer,
+      initialVolume,
+      (v: number) => {
+        this.volume = v;
+        if (typeof setGlobalBgmVolume === 'function') {
+          setGlobalBgmVolume(v);
+        }
+      }
+    );
+
   }
 
   public cleanup() {
