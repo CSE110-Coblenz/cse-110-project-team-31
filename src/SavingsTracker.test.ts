@@ -1,55 +1,34 @@
-/**
- * SavingsTracker.test.ts - Line-by-Line Explanation of the Savings Bar UI Tests
- *
- * PURPOSE:
- * The SavingsTracker widget displays a progress bar that tracks funds toward a win threshold.
- * These tests verify the UI builds correctly, clamps progress between 0 and 1, and updates the
- * display text. The commentary explains every mock and assertion so a reader can connect the
- * dots between Konva interactions and business rules.
- */
-
-// We need a DOM-like environment because the widget instantiates `Image` and touches window APIs.
 // @vitest-environment jsdom
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-// Import Vitest helpers. Each identifier is annotated for clarity.
-import { describe, it, expect, beforeEach, vi } from "vitest"; // describe/it = test structure, expect = assertions, vi = mocks, beforeEach = per-test setup
-
-/**
- * Factory to create a lightweight Konva mock that mirrors just enough of the API for SavingsTracker.
- * Each fake stores configuration and exposes spies where rendering side effects are expected.
- */
 function createKonvaMock() {
-  type Handler = (evt?: any) => void; // shared handler signature used across fake nodes
-
-  // Base node that records configuration, children, and event handlers.
+  type Handler = (evt?: any) => void;
   class FakeNode {
-    config: Record<string, any>; // stored configuration key/value pairs
-    children: any[] = []; // track children added to this node
-    handlers = new Map<string, Handler>(); // event handler registry
+    config: Record<string, any>;
+    children: any[] = [];
+    handlers = new Map<string, Handler>();
     constructor(config: Record<string, any> = {}) {
-      this.config = { ...config }; // shallow clone to avoid external mutation
+      this.config = { ...config };
     }
     add(...nodes: any[]) {
-      this.children.push(...nodes); // record added children
-      return this; // allow chaining like real Konva nodes
+      this.children.push(...nodes);
+      return this;
     }
     getChildren() {
-      return this.children; // expose children for assertions
+      return this.children;
     }
     on(event: string, handler: Handler) {
-      this.handlers.set(event, handler); // register an event handler
+      this.handlers.set(event, handler);
     }
     fire(event: string) {
-      this.handlers.get(event)?.(); // manually trigger a handler (used in some components)
+      this.handlers.get(event)?.();
     }
     accessor(key: string, fallback: any = 0) {
-      // Helper to generate getter/setter pairs mirroring Konva's fluent API.
       return (value?: any) => {
-        if (value !== undefined) this.config[key] = value; // set when provided
-        return this.config[key] ?? fallback; // otherwise return stored value with default
+        if (value !== undefined) this.config[key] = value;
+        return this.config[key] ?? fallback;
       };
     }
-    // Common Konva properties exposed via accessors.
     width = this.accessor("width", 100);
     height = this.accessor("height", 50);
     x = this.accessor("x", 0);
@@ -58,50 +37,36 @@ function createKonvaMock() {
     cornerRadius = this.accessor("cornerRadius", 0);
     opacity = this.accessor("opacity", 1);
   }
-
-  // FakeStage adds a container() method for cursor styling checks.
   class FakeStage extends FakeNode {
-    containerElement = { style: {} }; // mimic DOM container with mutable style
+    containerElement = { style: {} };
     constructor(config: Record<string, any>) {
       super(config);
     }
     container() {
-      return this.containerElement; // expose container to match Konva.Stage API
+      return this.containerElement;
     }
   }
-
-  // FakeLayer spies on draw/batchDraw to confirm redraw triggers.
   class FakeLayer extends FakeNode {
-    draw = vi.fn(); // spy for full redraws
-    batchDraw = vi.fn(); // spy for partial redraws
+    draw = vi.fn();
+    batchDraw = vi.fn();
   }
-
-  // FakeRect is a no-op container; SavingsTracker only needs the constructor.
   class FakeRect extends FakeNode {}
-
-  // FakeText exposes text() getter/setter through the accessor helper.
   class FakeText extends FakeNode {
     text = this.accessor("text", "");
   }
-
-  // FakeImage stores an attached image object.
   class FakeImage extends FakeNode {
     image(val?: any) {
-      if (val !== undefined) this.config.image = val; // set incoming image reference
-      return this.config.image; // return stored image for assertions
+      if (val !== undefined) this.config.image = val;
+      return this.config.image;
     }
   }
-
-  // FakeAnimation calls the provided callback with multiple timeDiff values to hit both branches inside SavingsTracker.
   class FakeAnimation {
     constructor(private cb?: (frame: any) => void, private _layer?: any) {}
     start() {
-      // Trigger callback with small and large timeDiffs to simulate frame progression.
+      // bounce across thresholds to flip direction
       [5, 1000, 6000].forEach((timeDiff) => this.cb?.({ timeDiff }));
     }
   }
-
-  // Return object matching Konva's default export shape.
   return {
     default: {
       Stage: FakeStage,
@@ -114,49 +79,42 @@ function createKonvaMock() {
   };
 }
 
-// Suite wrapper for SavingsTracker tests.
 describe("SavingsTracker coverage", () => {
-  // Ensure a clean slate before each test to avoid leaked mocks.
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
-  // Single test that builds the widget and drives its update logic through edge cases.
   it("builds UI and updates progress clamped to bounds", async () => {
-    // Stub global Image so Konva.Image loads instantly without network calls.
     vi.stubGlobal(
       "Image",
       class {
-        _src = ""; // remember assigned src value
-        _onload: (() => void) | null = null; // store onload handler
+        _src = "";
+        _onload: (() => void) | null = null;
         set src(val: string) {
-          this._src = val; // assign src
-          this._onload?.(); // immediately fire onload to simulate success
+          this._src = val;
+          this._onload?.();
         }
         get src() {
-          return this._src; // expose current src value
+          return this._src;
         }
         set onload(fn: (() => void) | null) {
-          this._onload = fn; // record onload handler
-          if (fn && this._src) fn(); // if src already set, trigger immediately
+          this._onload = fn;
+          if (fn && this._src) fn();
         }
         get onload() {
-          return this._onload; // allow reading handler for completeness
+          return this._onload;
         }
       }
     );
-
-    const konvaMock = createKonvaMock(); // build Konva mock factory output
-    vi.doMock("konva", () => konvaMock); // register Konva mock before importing widget
-
-    // Mock ConfigManager to feed deterministic configuration into the widget.
+    const konvaMock = createKonvaMock();
+    vi.doMock("konva", () => konvaMock);
     const { ConfigManager } = await import("./config");
     vi.spyOn(ConfigManager, "getInstance").mockReturnValue({
       getConfig: () => ({
-        winThreshold: 50,           // goal for reaching 100% progress
-        startingFunds: 0,           // unused here but required by type
-        bankruptcyThreshold: 0,     // unused placeholder
-        flourPriceMin: 0,           // filler values keep structure intact
+        winThreshold: 50,
+        startingFunds: 0,
+        bankruptcyThreshold: 0,
+        flourPriceMin: 0,
         flourPriceMax: 0,
         bakingTime: 0,
         cleaningTime: 0,
@@ -166,23 +124,19 @@ describe("SavingsTracker coverage", () => {
         cookiePrice: 0,
       }),
     } as any);
-
-    // Import SavingsTracker after mocks are in place.
     const { SavingsTracker } = await import("./ui/SavingsTracker");
-    const Konva = (await import("konva")).default as any; // pull mocked Konva constructors
+    const Konva = (await import("konva")).default as any;
 
-    // Create mocked stage/layer and instantiate the tracker.
     const stage = new Konva.Stage({ width: 800, height: 400, container: {} });
     const layer = new Konva.Layer();
     const tracker: any = new SavingsTracker(layer, stage);
 
-    // Drive update logic beyond upper bound to test clamping to 1.
+    // progress over goal -> clamp to 1
     tracker.update(100);
-    // Drive update logic below zero to test clamping to 0.
+    // progress under 0 -> clamp to 0
     tracker.update(-10);
-    // Assert the label reflects savings information, proving text updates occurred.
+    // ensure text updates
     expect(tracker.labelText.text()).toContain("Savings:");
-    // Ensure the layer requested a redraw when updates occurred.
     expect(layer.batchDraw).toHaveBeenCalled();
   });
 });
