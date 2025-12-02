@@ -1,5 +1,5 @@
 import Konva from "konva";
-import { VolumeSlider } from './Volumeslider';
+import { VolumeSlider } from './VolumeSlider';
 
 
 export class InfoButton {
@@ -270,6 +270,13 @@ export class InfoButton {
             );
         }
         );
+
+        // Center the volume slider at bottom of modal
+        this.volumeSlider.setPosition(
+        modalX + (modalWidth - this.volumeSlider.getWidth()) / 2,
+        modalY + modalHeight - 70
+        );
+
         modalLayer.draw();
     }
 }
