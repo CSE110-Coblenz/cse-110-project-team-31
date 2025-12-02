@@ -60,7 +60,7 @@ export class LoginScreen {
         const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
         const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
 
-        let initialVolume = 0.5;
+        let initialVolume = 0.2;
         if (typeof getGlobalBgmVolume === 'function') {
         const v = getGlobalBgmVolume();
         if (typeof v === 'number' && !Number.isNaN(v)) {

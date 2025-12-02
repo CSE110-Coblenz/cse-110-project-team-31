@@ -63,7 +63,7 @@ export class StoryScreen {
     const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
     const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
 
-    let initialVolume = 0.5;
+    let initialVolume = 0.2;
     if (typeof getGlobalBgmVolume === 'function') {
       const v = getGlobalBgmVolume();
       if (typeof v === 'number' && !Number.isNaN(v)) {
@@ -73,17 +73,9 @@ export class StoryScreen {
 
     this.volume = initialVolume;
 
-    this.volumeButton = new VolumeButton(
-      this.stage,
-      this.layer,
-      initialVolume
-    );
-
-    // Responsive Constants
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // --- YOUR ORIGINAL STAGING LOGIC ---
     // Box Dimensions
     const boxRatioWidth = 0.8;
     const boxRatioHeight = 0.35;
@@ -138,9 +130,6 @@ export class StoryScreen {
     // Stage default cursor
     this.stage.container().style.cursor = cursorDefault;
 
-    // ---------------------------
-    // Load background image
-    // ---------------------------
     const image = new Image();
     image.onload = () => {
       // Safety check: stop if resized while loading
@@ -155,14 +144,14 @@ export class StoryScreen {
       });
       this.layer.add(bg);
 
-      // ---------------------------
-      // Add rain animation
-      // ---------------------------
       this.createRain(stageWidth, stageHeight);
 
-      // ---------------------------
-      // Add box
-      // ---------------------------
+      this.volumeButton = new VolumeButton(
+        this.stage,
+        this.layer,
+        initialVolume
+      );
+      
       const box = new Konva.Rect({
         x: boxX,
         y: boxY,
@@ -332,7 +321,7 @@ export class StoryScreen {
     const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
     const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
 
-    let initialVolume = 0.5;
+    let initialVolume = 0.2;
     if (typeof getGlobalBgmVolume === 'function') {
       const v = getGlobalBgmVolume();
       if (typeof v === 'number' && !Number.isNaN(v)) {

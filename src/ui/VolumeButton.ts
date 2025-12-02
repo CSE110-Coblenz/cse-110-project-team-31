@@ -12,7 +12,7 @@ export class VolumeButton {
   constructor(
     stage: Konva.Stage,
     layer: Konva.Layer,
-    initialVolume: number = 0.5
+    initialVolume: number = 0.
   ) {
     this.stage = stage;
     this.layer = layer;
@@ -22,7 +22,7 @@ export class VolumeButton {
 
     // Position: top-right corner, next to info button if it exists
     this.group = new Konva.Group({
-      x: stage.width() - buttonRadius * 7, // Offset left to avoid info button
+      x: stage.width() - buttonRadius * 3,
       y: buttonRadius * 2.5,
     });
 
@@ -36,42 +36,25 @@ export class VolumeButton {
       shadowOffset: { x: 2, y: 2 },
     });
 
-    // Volume icon (speaker symbol)
-    const iconGroup = new Konva.Group({
-      x: -buttonRadius * 0.4,
-      y: -buttonRadius * 0.3,
-    });
+    this.group.add(circle);
 
-    // Speaker base
-    const speakerBase = new Konva.Path({
-      data: 'M 0,8 L 4,8 L 8,4 L 8,16 L 4,12 L 0,12 Z',
-      fill: 'white',
-      scale: { x: buttonRadius / 20, y: buttonRadius / 20 },
-    });
+    // Load volume icon image
+    const imgObj = new Image();
+    imgObj.src = './public/volumeIcon.png';
+    imgObj.onload = () => {
+      const iconSize = buttonRadius * 2.5;
+      const icon = new Konva.Image({
+        image: imgObj,
+        width: iconSize,
+        height: iconSize,
+        x: -iconSize / 2,
+        y: -iconSize / 2,
+        listening: false,
+      });
+      this.group.add(icon);
+      this.layer.batchDraw();
+    };
 
-    // Sound waves
-    const wave1 = new Konva.Arc({
-      x: 10 * (buttonRadius / 20),
-      y: 10 * (buttonRadius / 20),
-      innerRadius: 3 * (buttonRadius / 20),
-      outerRadius: 4 * (buttonRadius / 20),
-      angle: 60,
-      rotation: -30,
-      fill: 'white',
-    });
-
-    const wave2 = new Konva.Arc({
-      x: 10 * (buttonRadius / 20),
-      y: 10 * (buttonRadius / 20),
-      innerRadius: 6 * (buttonRadius / 20),
-      outerRadius: 7 * (buttonRadius / 20),
-      angle: 60,
-      rotation: -30,
-      fill: 'white',
-    });
-
-    iconGroup.add(speakerBase, wave1, wave2);
-    this.group.add(circle, iconGroup);
     this.layer.add(this.group);
 
     // Hover effects
@@ -102,8 +85,8 @@ export class VolumeButton {
     const stageHeight = this.stage.height();
 
     // Compact modal size
-    const modalWidth = Math.min(stageWidth * 0.4, 350);
-    const modalHeight = Math.min(stageHeight * 0.3, 200);
+    const modalWidth = Math.min(stageWidth * 0.6, 600);
+    const modalHeight = Math.min(stageHeight * 0.2, 200);
     const modalX = (stageWidth - modalWidth) / 2;
     const modalY = (stageHeight - modalHeight) / 2;
 
@@ -237,7 +220,7 @@ export class VolumeButton {
 
     this.stage.add(modalLayer);
 
-    // Create volume slider in the modal
+    // Create volume slider in the modal layer
     this.volumeSlider = new VolumeSlider(
       this.stage,
       modalLayer,
@@ -254,6 +237,10 @@ export class VolumeButton {
         );
       }
     );
+
+    // Position the slider in the modal
+    const sliderY = modalY + modalHeight * 0.55;
+    this.volumeSlider.setPosition((stageWidth - this.volumeSlider.getWidth()) / 2, sliderY);
 
     modalLayer.draw();
   }
