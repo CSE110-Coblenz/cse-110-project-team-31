@@ -1,19 +1,19 @@
 import Konva from "konva";
 import { ConfigManager } from "./config"; // Import ConfigManager
-import { VolumeSlider } from './ui/Volumeslider';
+import { VolumeButton } from './ui/VolumeButton';
 
 export class StoryScreen {
   private stage: Konva.Stage;
   private layer: Konva.Layer;
   private onComplete: () => void;
 
-  private volumeSlider?: VolumeSlider;
+  private volumeButton?: VolumeButton;
   public volume: number = 0.5;
 
   public setVolume(v: number): void {
     this.volume = Math.max(0, Math.min(1, v));
-    if (this.volumeSlider) {
-      this.volumeSlider.setVolume(this.volume);
+    if (this.volumeButton) {
+      this.volumeButton.setVolume(this.volume);
     }
   }
   
@@ -63,7 +63,7 @@ export class StoryScreen {
     const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
     const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
 
-    let initialVolume = 0.5;
+    let initialVolume = 0.2;
     if (typeof getGlobalBgmVolume === 'function') {
       const v = getGlobalBgmVolume();
       if (typeof v === 'number' && !Number.isNaN(v)) {
@@ -73,23 +73,9 @@ export class StoryScreen {
 
     this.volume = initialVolume;
 
-    this.volumeSlider = new VolumeSlider(
-      this.stage,
-      this.layer,
-      initialVolume,
-      (v: number) => {
-        this.volume = v;
-        if (typeof setGlobalBgmVolume === 'function') {
-          setGlobalBgmVolume(v);
-        }
-      }
-    );
-
-    // Responsive Constants
     const stageWidth = this.stage.width();
     const stageHeight = this.stage.height();
 
-    // --- YOUR ORIGINAL STAGING LOGIC ---
     // Box Dimensions
     const boxRatioWidth = 0.8;
     const boxRatioHeight = 0.35;
@@ -144,9 +130,6 @@ export class StoryScreen {
     // Stage default cursor
     this.stage.container().style.cursor = cursorDefault;
 
-    // ---------------------------
-    // Load background image
-    // ---------------------------
     const image = new Image();
     image.onload = () => {
       // Safety check: stop if resized while loading
@@ -161,14 +144,14 @@ export class StoryScreen {
       });
       this.layer.add(bg);
 
-      // ---------------------------
-      // Add rain animation
-      // ---------------------------
       this.createRain(stageWidth, stageHeight);
 
-      // ---------------------------
-      // Add box
-      // ---------------------------
+      this.volumeButton = new VolumeButton(
+        this.stage,
+        this.layer,
+        initialVolume
+      );
+      
       const box = new Konva.Rect({
         x: boxX,
         y: boxY,
@@ -338,7 +321,7 @@ export class StoryScreen {
     const getGlobalBgmVolume = (window as any).getGlobalBgmVolume;
     const setGlobalBgmVolume = (window as any).setGlobalBgmVolume;
 
-    let initialVolume = 0.5;
+    let initialVolume = 0.2;
     if (typeof getGlobalBgmVolume === 'function') {
       const v = getGlobalBgmVolume();
       if (typeof v === 'number' && !Number.isNaN(v)) {
@@ -347,25 +330,13 @@ export class StoryScreen {
     }
 
     this.volume = initialVolume;
-
-    this.volumeSlider = new VolumeSlider(
-      this.stage,
-      this.layer,
-      initialVolume,
-      (v: number) => {
-        this.volume = v;
-        if (typeof setGlobalBgmVolume === 'function') {
-          setGlobalBgmVolume(v);
-        }
-      }
-    );
-
   }
 
   public cleanup() {
     if (this.typingInterval) clearInterval(this.typingInterval);
     if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
     if (this.rainAnimation) this.rainAnimation.stop();
+    if (this.volumeButton) this.volumeButton.destroy();
     this.raindrops.forEach(drop => drop.destroy());
     this.raindrops = [];
     window.removeEventListener('resize', this.resizeHandler);
