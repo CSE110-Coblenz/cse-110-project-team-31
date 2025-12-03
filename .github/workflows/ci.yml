@@ -5,7 +5,8 @@ name: Run Trivial Tests
 on:
   # 1. Run automatically on new push events to the main branch
   push:
-    branches: [ "main" ]
+    branches: [ "main", "**" ] # run on any branch push so you can validate before merging
+  pull_request: # also run on PRs against any branch
   
   # 2. Allow running this workflow manually from the Actions tab
   workflow_dispatch:
