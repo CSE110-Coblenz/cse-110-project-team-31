@@ -82,7 +82,7 @@ vi.mock("konva", () => {
     }
   }
 
-  class FakeGroup extends FakeNode {
+  class FakeGroup extends FakeNode<Record<string, unknown>> {
     children: unknown[] = [];
     handlers = new Map<string, Handler>();
     destroy = vi.fn();

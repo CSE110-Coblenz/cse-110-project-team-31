@@ -191,7 +191,7 @@ describe("VolumeButton", () => {
     expect(button.volume).toBe(0);
     expect(sliderState.lastSetVolume).not.toHaveBeenCalled();
 
-    button["group"].handlers.get("click")?.(); // open popup to create slider
+    (button["group"] as any).handlers.get("click")?.(); // open popup to create slider
     button.setVolume(2); // forward to slider with clamp
     expect(button.volume).toBe(1);
     expect(sliderState.lastSetVolume).toHaveBeenCalledWith(1);

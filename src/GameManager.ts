@@ -14,6 +14,7 @@ import { StoryScreen } from './StoryScreen';
 import { VictoryScreen } from './VictoryScreen';
 import { LoseScreen } from './LoseScreen';
 import { VolumeSlider } from './ui/VolumeSlider';
+import { getAssetPath } from './utils';
 
 
 
@@ -40,14 +41,14 @@ export class GameManager {
   private customerOrders: Array<{customerNum: number, cookieCount: number}> = [];
 
   // Audio - Wrapped in try/catch or checked for existence for test safety
-  private winSound = new Audio('./public/Win_sound.mp3');
-  private loseSound = new Audio('./public/Lose_sound.mp3');
-  private bgmIntro = new Audio('/login_page_mus.mp3');   
-  private bgmStory = new Audio('/sad_mus.mp3');         
-  private bgmMain  = new Audio('/in_game_mus.mp3'); 
-  private bgmAnim  = new Audio('/morning_mus.mp3');   
-  private bgmEndDay  = new Audio('/day_sum_mus.mp3');  
-  private bgmbaking  = new Audio('/baking_mus.mp3');  
+  private winSound = new Audio(getAssetPath('Win_sound.mp3'));
+  private loseSound = new Audio(getAssetPath('Lose_sound.mp3'));
+  private bgmIntro = new Audio(getAssetPath('login_page_mus.mp3'));   
+  private bgmStory = new Audio(getAssetPath('sad_mus.mp3'));         
+  private bgmMain  = new Audio(getAssetPath('in_game_mus.mp3')); 
+  private bgmAnim  = new Audio(getAssetPath('morning_mus.mp3'));
+  private bgmEndDay  = new Audio(getAssetPath('day_sum_mus.mp3'));  
+  private bgmbaking  = new Audio(getAssetPath('baking_mus.mp3'));
 
   private audioUnlocked = false;
   private winPlayedOnce = false;
@@ -169,7 +170,7 @@ export class GameManager {
       console.warn('Background image failed to load');
       this.renderCurrentPhase();
     };
-    imageObj.src = '/background1.jpg';
+    imageObj.src = getAssetPath('background1.jpg');
   }
 
   private playBGM(track: 'intro' | 'story' | 'main' | 'anim' | 'endday' | 'baking' | null): void {
@@ -383,136 +384,6 @@ export class GameManager {
     }
   }
 
-  private renderVictoryPhase(): void {
-    this.audioReady = true;
-
-    if (this.audioReady && !this.winPlayedOnce) {
-        this.winSound.currentTime = 0;
-        this.winSound.play().catch(()=>{});
-        this.winPlayedOnce = true;
-    }
-    new VictoryScreen(this.stage, this.layer, {
-      cashBalance: this.player.funds,
-      totalDaysPlayed: this.player.currentDay,
-      onReturnHome: () => {
-        this.previousPhase = GamePhase.VICTORY;
-        this.currentPhase = GamePhase.LOGIN;
-        this.resetGame(); 
-        this.renderCurrentPhase();
-      },
-    });
-  }
-
-  private renderLosePhase(): void {
-    this.audioReady = true;
-    if (this.audioReady) {
-      this.loseSound.currentTime = 0;
-      this.loseSound.play().catch(() => {});
-    }
-    new LoseScreen(this.stage, this.layer, {
-      cashBalance: this.player.funds,
-      totalDaysPlayed: this.player.currentDay,
-      onReturnHome: () => {
-        this.previousPhase = GamePhase.DEFEAT;
-        this.backgroundImage?.remove();   
-        this.layer.draw();
-        this.currentPhase = GamePhase.LOGIN;
-        this.resetGame();
-        this.renderCurrentPhase();
-      },
-    });
-  }
-
-  private resetGame(): void {
-    console.log('Resetting game state');
-    this.player = {
-      username: this.player.username, 
-      funds: this.config.startingFunds,
-      ingredients: new Map(),
-      breadInventory: [],
-      maxBreadCapacity: this.config.maxBreadCapacity,
-      currentDay: 1,
-      dishesToClean: 0,
-      reputation: 1.0,
-      currentDayDemand: 0,
-    };
-    this.daySales = 0;
-    this.dayExpenses = 0;
-    this.dayTips = 0;
-    this.customerOrders = [];
-  }
-
-  private renderPostBakingAnimation(): void {
-    const IMAGE_PATHS = [
-      '/20.png', '/21.png', '/22.png', '/23.png', '/24.png', '/25.png',
-      '/26.png', '/27.png', '/28.png', '/29.png', '/30.png', '/31.png'
-    ];
-
-    this.postBakingAnimation = new AnimationPlayer(
-      this.layer,
-      IMAGE_PATHS,
-      4,
-      0,
-      0,
-      this.stage.width(),
-      this.stage.height(),
-      false,
-      () => {
-        this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
-        this.currentPhase = GamePhase.CLEANING;
-        this.renderCurrentPhase();
-      }
-    );
-
-    this.postBakingAnimation.load().then(() => {
-        if (this.postBakingAnimation) {
-          this.postBakingAnimation.start();
-        }
-      }).catch((error) => {
-        console.error('Post-baking animation failed to load:', error);
-        this.postBakingAnimation = null;
-        this.previousPhase = GamePhase.POST_BAKING_ANIMATION;
-        this.currentPhase = GamePhase.CLEANING;
-        this.renderCurrentPhase();
-      });
-  }
-
-  private renderNewDayAnimation(): void {
-    const IMAGE_PATHS = [
-      '/33.png', '/34.png', '/35.png', '/36.png', '/37.png', '/38.png',
-      '/39.png', '/40.png', '/41.png', '/42.png', '/43.png', '/44.png',
-      '/44.png', '/44.png', '/44.png'
-    ];
-
-    this.newDayAnimation = new AnimationPlayer(
-      this.layer,
-      IMAGE_PATHS,
-      2,
-      0,
-      0,
-      this.stage.width(),
-      this.stage.height(),
-      false,
-      () => {
-        this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
-        this.currentPhase = GamePhase.ORDER;
-        this.renderCurrentPhase();
-      }
-    );
-
-    this.newDayAnimation.load().then(() => {
-        if (this.newDayAnimation) {
-          this.newDayAnimation.start();
-        }
-      }).catch((error) => {
-        console.error('New day animation failed to load:', error);
-        this.newDayAnimation = null;
-        this.previousPhase = GamePhase.NEW_DAY_ANIMATION;
-        this.currentPhase = GamePhase.ORDER;
-        this.renderCurrentPhase();
-      });
-  }
-
   private renderShoppingPhase(): void {
     // Reset day tracking vars
     this.daySales = 0;
@@ -631,7 +502,6 @@ export class GameManager {
   }
 
   private renderVictoryPhase(): void {
-    this.audioReady = true;
     if (!this.winPlayedOnce) {
         this.winSound.currentTime = 0;
         this.winSound.play().catch(()=>{});
@@ -676,7 +546,7 @@ export class GameManager {
 
   // --- Animation Helpers ---
   private renderPostBakingAnimation(): void {
-    const PATHS = Array.from({length: 12}, (_, i) => `/${20 + i}.png`);
+    const PATHS = Array.from({length: 12}, (_, i) => getAssetPath(`${20 + i}.png`));
     this.postBakingAnimation = new AnimationPlayer(
         this.layer, PATHS, 4, 0, 0, this.stage.width(), this.stage.height(), false,
         () => {
@@ -692,9 +562,9 @@ export class GameManager {
   }
 
   private renderNewDayAnimation(): void {
-     const PATHS = Array.from({length: 12}, (_, i) => `/${33 + i}.png`);
+     const PATHS = Array.from({length: 12}, (_, i) => getAssetPath(`${33 + i}.png`));
      // Add duplicate frames for pause effect
-     PATHS.push('/44.png', '/44.png', '/44.png');
+     PATHS.push(getAssetPath('44.png'), getAssetPath('44.png'), getAssetPath('44.png'));
      
      this.newDayAnimation = new AnimationPlayer(
         this.layer, PATHS, 2, 0, 0, this.stage.width(), this.stage.height(), false,

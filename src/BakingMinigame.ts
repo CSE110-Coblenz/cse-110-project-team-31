@@ -1,4 +1,5 @@
 import Konva from 'konva';
+import { getAssetPath } from './utils';
 import { MinigameResult } from './types';
 import { ConfigManager } from './config';
 import { AnimationPlayer } from './AnimationPlayer'; 
@@ -66,7 +67,8 @@ export class BakingMinigame {
         this.setupUI(); 
         
         const IMAGE_PATHS = [
-            '/9.png', '/10.png', '/11.png', '/12.png', '/13.png', '/14.png'
+            getAssetPath('9.png'), getAssetPath('10.png'), getAssetPath('11.png'), 
+            getAssetPath('12.png'), getAssetPath('13.png'), getAssetPath('14.png')
         ];
 
         this.animationPlayer = new AnimationPlayer(

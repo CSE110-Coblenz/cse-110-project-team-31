@@ -137,7 +137,7 @@ describe("HowToPlayScreen", () => {
       .mockImplementation((cb: FrameRequestCallback) => {
         cb(0);
         return 1;
-      });
+      }) as any;
     vi.spyOn(window, "cancelAnimationFrame").mockImplementation(() => {});
   });
 

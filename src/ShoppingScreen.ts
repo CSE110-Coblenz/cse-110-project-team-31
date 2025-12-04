@@ -1,6 +1,7 @@
 import Konva from "konva";
 import { ExitButton } from "./ui/ExitButton";
 import { InfoButton } from "./ui/InfoButton";
+import { getAssetPath } from "./utils";
 
 interface IngredientItem {
   name: string;
@@ -571,7 +572,7 @@ export class ShoppingScreen {
         modalLayer.draw();
     };
 
-    imageObj.src = '/start-receipt.png';
+    imageObj.src = getAssetPath('start-receipt.png');
     this.stage.add(modalLayer);
   }
 

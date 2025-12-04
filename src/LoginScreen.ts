@@ -1,5 +1,6 @@
 import Konva from 'konva';
 import { VolumeButton } from './ui/VolumeButton';
+import { getAssetPath } from './utils';
 
 export class LoginScreen {
     private layer: Konva.Layer;
@@ -93,7 +94,7 @@ export class LoginScreen {
             this.loginBackground.moveToBottom();
             this.layer.batchDraw(); // Use batchDraw for better performance
         };
-        bgImg.src = '/login-background.png';
+        bgImg.src = getAssetPath('login-background.png');
 
         // TITLE IMAGE
         const titleImg = new Image();
@@ -116,7 +117,7 @@ export class LoginScreen {
             title.moveToTop();
             this.layer.batchDraw();
         };
-        titleImg.src = '/title-logo.png';
+        titleImg.src = getAssetPath('title-logo.png');
 
         // SUBTITLE
         const subtitle = new Konva.Text({

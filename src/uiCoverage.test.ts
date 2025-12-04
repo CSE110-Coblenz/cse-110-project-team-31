@@ -261,10 +261,10 @@ describe("UI component coverage", () => {
     const button = layer
       .getChildren()
       .find((c: any) =>
-        Array.from(c.handlers?.keys?.() ?? []).some((key) => key.includes("click"))
+        Array.from(c.handlers?.keys?.() ?? []).some((key) => (key as string).includes("click"))
       );
     const clickEvent = Array.from(button?.handlers.keys?.() ?? []).find((key) =>
-      key.includes("click")
+      (key as string).includes("click")
     );
     button?.fire("mouseenter");
     expect(stage.container().style.cursor).toBe("pointer");
@@ -290,10 +290,10 @@ describe("UI component coverage", () => {
     const button = layer
       .getChildren()
       .find((c: any) =>
-        Array.from(c.handlers?.keys?.() ?? []).some((key) => key.includes("click"))
+        Array.from(c.handlers?.keys?.() ?? []).some((key) => (key as string).includes("click"))
       );
     const clickEvent = Array.from(button?.handlers.keys?.() ?? []).find((key) =>
-      key.includes("click")
+      (key as string).includes("click")
     );
     button?.fire("mouseenter");
     button?.fire("mouseleave");
