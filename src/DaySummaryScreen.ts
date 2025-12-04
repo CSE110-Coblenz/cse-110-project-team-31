@@ -2,6 +2,7 @@ import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
 import { SavingsTracker } from './ui/SavingsTracker';
+import { getAssetPath } from './utils';
 
 export class DaySummaryScreen {
     private layer: Konva.Layer;
@@ -107,7 +108,7 @@ export class DaySummaryScreen {
             this.layer.draw();
             onLoad();
         };
-        imageObj.src = '/end-owl.png';
+        imageObj.src = getAssetPath('end-owl.png');
     }
 
     private createReceiptGroup(stageWidth: number, stageHeight: number): void {
@@ -221,7 +222,7 @@ export class DaySummaryScreen {
             this.layer.add(receiptGroup);
             this.layer.draw();
         };
-        imageObj.src = '/end-receipt.png'
+        imageObj.src = getAssetPath('end-receipt.png')
     }
 
     private createContinueButton(stageWidth: number, stageHeight: number): void {

@@ -4,99 +4,100 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 let KonvaModule: any;
 let LoginScreen: any;
 
+type Handler = (evt?: any) => void;
+class FakeNode {
+  config: Record<string, any>;
+  children: any[] = [];
+  handlers = new Map<string, Handler>();
+  constructor(config: Record<string, any> = {}) {
+    this.config = { ...config };
+  }
+  add(...nodes: any[]) {
+    this.children.push(...nodes);
+    return this;
+  }
+  destroy() {}
+  getChildren() {
+    return this.children;
+  }
+  on(event: string, handler: Handler) {
+    this.handlers.set(event, handler);
+  }
+  fire(event: string, payload?: any) {
+    this.handlers.get(event)?.(payload);
+  }
+  findOne() {
+    return this.children[0] ?? new FakeNode();
+  }
+  find() {
+    return this.children;
+  }
+  listening(_: boolean) {
+    return _;
+  }
+  moveToTop() {}
+  moveToBottom() {}
+  moveToFront() {}
+  accessor(key: string, fallback: any = 0) {
+    return (value?: any) => {
+      if (value !== undefined) this.config[key] = value;
+      return this.config[key] ?? fallback;
+    };
+  }
+  width = this.accessor("width", 100);
+  height = this.accessor("height", 50);
+  x = this.accessor("x", 0);
+  y = this.accessor("y", 0);
+  fill = this.accessor("fill", "");
+  stroke = this.accessor("stroke", "");
+  shadowBlur = this.accessor("shadowBlur", 0);
+  shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
+  shadowOpacity = this.accessor("shadowOpacity", 0);
+  shadowColor = this.accessor("shadowColor", "");
+  opacity = this.accessor("opacity", 1);
+  cornerRadius = this.accessor("cornerRadius", 0);
+  fontFamily = this.accessor("fontFamily", "");
+  fontSize = this.accessor("fontSize", 16);
+  fontStyle = this.accessor("fontStyle", "");
+  align = this.accessor("align", "left");
+  verticalAlign = this.accessor("verticalAlign", "top");
+  lineHeight = this.accessor("lineHeight", 1);
+  wrap = this.accessor("wrap", "word");
+  offsetY = this.accessor("offsetY", 0);
+  offsetX = this.accessor("offsetX", 0);
+  padding = this.accessor("padding", 0);
+  text = this.accessor("text", "");
+  // Explicit method for frameworks that expect a function property
+  visible(value?: any) {
+    if (value !== undefined) this.config.visible = value;
+    return this.config.visible ?? true;
+  }
+  getTextWidth() {
+    return (this.config.text?.length ?? 0) * 10;
+  }
+}
+
+class FakeStage extends FakeNode {
+  containerElement = { style: { cursor: "default" } };
+  constructor(config: { width: number; height: number }) {
+    super(config);
+  }
+  container() {
+    return this.containerElement;
+  }
+  add(node: any) {
+    this.children.push(node);
+    return this;
+  }
+}
+
+class FakeLayer extends FakeNode {
+  draw = vi.fn();
+  batchDraw = vi.fn();
+  destroyChildren = vi.fn();
+}
+
 function createKonvaMock() {
-  type Handler = (evt?: any) => void;
-  class FakeNode {
-    config: Record<string, any>;
-    children: any[] = [];
-    handlers = new Map<string, Handler>();
-    constructor(config: Record<string, any> = {}) {
-      this.config = { ...config };
-    }
-    add(...nodes: any[]) {
-      this.children.push(...nodes);
-      return this;
-    }
-    destroy() {}
-    getChildren() {
-      return this.children;
-    }
-    on(event: string, handler: Handler) {
-      this.handlers.set(event, handler);
-    }
-    fire(event: string, payload?: any) {
-      this.handlers.get(event)?.(payload);
-    }
-    findOne() {
-      return this.children[0] ?? new FakeNode();
-    }
-    find() {
-      return this.children;
-    }
-    listening(_: boolean) {
-      return _;
-    }
-    moveToTop() {}
-    moveToBottom() {}
-    moveToFront() {}
-    accessor(key: string, fallback: any = 0) {
-      return (value?: any) => {
-        if (value !== undefined) this.config[key] = value;
-        return this.config[key] ?? fallback;
-      };
-    }
-    width = this.accessor("width", 100);
-    height = this.accessor("height", 50);
-    x = this.accessor("x", 0);
-    y = this.accessor("y", 0);
-    fill = this.accessor("fill", "");
-    stroke = this.accessor("stroke", "");
-    shadowBlur = this.accessor("shadowBlur", 0);
-    shadowOffset = this.accessor("shadowOffset", { x: 0, y: 0 });
-    shadowOpacity = this.accessor("shadowOpacity", 0);
-    shadowColor = this.accessor("shadowColor", "");
-    opacity = this.accessor("opacity", 1);
-    cornerRadius = this.accessor("cornerRadius", 0);
-    fontFamily = this.accessor("fontFamily", "");
-    fontSize = this.accessor("fontSize", 16);
-    fontStyle = this.accessor("fontStyle", "");
-    align = this.accessor("align", "left");
-    verticalAlign = this.accessor("verticalAlign", "top");
-    lineHeight = this.accessor("lineHeight", 1);
-    wrap = this.accessor("wrap", "word");
-    offsetY = this.accessor("offsetY", 0);
-    offsetX = this.accessor("offsetX", 0);
-    padding = this.accessor("padding", 0);
-    text = this.accessor("text", "");
-    // Explicit method for frameworks that expect a function property
-    visible(value?: any) {
-      if (value !== undefined) this.config.visible = value;
-      return this.config.visible ?? true;
-    }
-    getTextWidth() {
-      return (this.config.text?.length ?? 0) * 10;
-    }
-  }
-
-  class FakeStage extends FakeNode {
-    containerElement = { style: { cursor: "default" } };
-    constructor(config: { width: number; height: number }) {
-      super(config);
-    }
-    container() {
-      return this.containerElement;
-    }
-    add(node: any) {
-      this.children.push(node);
-      return this;
-    }
-  }
-
-  class FakeLayer extends FakeNode {
-    draw = vi.fn();
-    batchDraw = vi.fn();
-    destroyChildren = vi.fn();
-  }
 
   class FakeGroup extends FakeNode {}
   class FakeRect extends FakeNode {}
@@ -106,15 +107,15 @@ function createKonvaMock() {
   class FakeCircle extends FakeNode {}
 
   // Expose helper methods used by VolumeSlider
-  FakeNode.prototype.position = function (pos?: { x?: number; y?: number }) {
+  (FakeNode.prototype as any).position = function (pos?: { x?: number; y?: number }) {
     if (pos) {
-      if (pos.x !== undefined) this.config.x = pos.x;
-      if (pos.y !== undefined) this.config.y = pos.y;
+      if (pos.x !== undefined) (this as any).config.x = pos.x;
+      if (pos.y !== undefined) (this as any).config.y = pos.y;
     }
-    return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+    return { x: (this as any).config.x ?? 0, y: (this as any).config.y ?? 0 };
   };
-  FakeNode.prototype.getPointerPosition = function () {
-    return { x: this.config.x ?? 0, y: this.config.y ?? 0 };
+  (FakeNode.prototype as any).getPointerPosition = function () {
+    return { x: (this as any).config.x ?? 0, y: (this as any).config.y ?? 0 };
   };
 
   return {

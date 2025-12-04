@@ -335,7 +335,7 @@ describe("GameManager coverage", () => {
     gm.currentCleaningMinigame = { cleanup: vi.fn() };
     gm.postBakingAnimation = { destroy: vi.fn() };
     gm.newDayAnimation = { destroy: vi.fn() };
-    gm.backgroundImage = new (await import("konva")).default.Image();
+    gm.backgroundImage = new (await import("konva")).default.Image({ image: new Image() });
     gm.layer.add(gm.backgroundImage);
     gm.cleanupCurrentPhase();
 

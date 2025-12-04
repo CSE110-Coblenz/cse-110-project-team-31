@@ -1,6 +1,7 @@
 import Konva from 'konva';
 import { ExitButton } from './ui/ExitButton';
 import { InfoButton } from './ui/InfoButton';
+import { getAssetPath } from './utils';
 
 export class OrderScreen {
     private layer: Konva.Layer;
@@ -75,7 +76,7 @@ export class OrderScreen {
             this.layer.batchDraw();
             onLoad();
         };
-        imageObj.src = '/order-owl.png';
+        imageObj.src = getAssetPath('order-owl.png');
     }
 
     private createReceiptGroup(stageWidth: number, stageHeight: number): void {
@@ -183,7 +184,7 @@ export class OrderScreen {
             this.layer.batchDraw();
         };
 
-        imageObj.src = '/start-receipt.png';
+        imageObj.src = getAssetPath('start-receipt.png');
     }
 
     private createContinueButton(stageWidth: number, stageHeight: number): void {

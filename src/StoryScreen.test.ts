@@ -119,7 +119,6 @@ vi.mock("konva", () => { // Mock Konva primitives with lightweight, inspectable 
   }
 
   class FakeLabel extends FakeNode { // Label combines tag and text; we also capture all instances.
-    private readonly handlers = new Map<string, Handler>(); // Maintain separate handler map for button interactions.
     private readonly children: unknown[] = []; // Store children so we can access tag/text nodes.
 
     constructor(config: unknown) { // Accept config but mainly record creation.
@@ -169,7 +168,6 @@ vi.mock("konva", () => { // Mock Konva primitives with lightweight, inspectable 
   }
 
   class FakeGroup extends FakeNode { // Simple group that collects children and handlers.
-    private handlers = new Map<string, Handler>(); // Store registered handlers.
     private readonly children: unknown[] = []; // Track added children for pointer math tests.
     add(...children: unknown[]) { // Add one or more children to the group.
       this.children.push(...children); // Record children to allow assertions.
@@ -190,10 +188,6 @@ vi.mock("konva", () => { // Mock Konva primitives with lightweight, inspectable 
   }
 
   class FakeCircle extends FakeNode { // Circle node with position helpers for raindrop math.
-    private handlers = new Map<string, Handler>(); // Event handler map to support cursor changes.
-    on(event: string, handler: Handler) { // Register handler.
-      this.handlers.set(event, handler); // Store handler for later triggers.
-    }
     x(value?: number) { // Getter/setter for x.
       if (typeof value === "number") (this.config as any).x = value; // Save x coordinate.
       return (this.config as any).x ?? 0; // Return current x.
@@ -353,7 +347,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
       expect(setGlobalSpy).toHaveBeenCalledWith(0.9); // Confirm callback path executed on first slider instance.
     }
     screen.currentRenderId++; // Simulate a resize happening before the image finishes loading.
-    storedOnload?.(); // Trigger the delayed onload callback.
+    (storedOnload as (() => void) | null)?.(); // Trigger the delayed onload callback.
 
     expect(layer.addedNodes.length).toBe(0); // No nodes should be added because renderId mismatch short-circuits.
     (globalThis as any).Image = originalImage; // Restore original Image stub for other tests.
@@ -378,7 +372,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
     }
     expect(setTimeout).toBeDefined(); // Trivial assertion to keep test aligned with documented steps.
 
-    storedOnload?.(); // Trigger onload to avoid side effects for later tests.
+    (storedOnload as (() => void) | null)?.(); // Trigger onload to avoid side effects for later tests.
     (globalThis as any).Image = originalImage; // Restore Image stub.
   });
 
@@ -435,7 +429,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
   it("completes the typing loop and clears the interval once finished", () => { // Drive the typing interval to its end to cover completion branch.
     const stage = new FakeStage(720, 480); // Stage sizing for this scenario.
     const layer = new FakeLayer(); // Fake layer to receive UI nodes.
-    let intervalCb: Function | null = null; // Holder for the typing callback so we can trigger it manually.
+    let intervalCb: (() => void) | null = null; // Holder for the typing callback so we can trigger it manually.
     const clearSpy = vi.fn(); // Spy on clearInterval to confirm it is called when typing ends.
     const intervalSpy = vi.spyOn(globalThis as any, "setInterval").mockImplementation((cb: any) => { // Override setInterval to capture callback without scheduling timers.
       intervalCb = cb; // Store callback for manual invocation.
@@ -447,7 +441,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
 
     new StoryScreen(stage as never, layer as never, vi.fn()); // Build screen to register the typing interval.
     for (let i = 0; i < 1200; i++) { // Step through enough characters to exhaust the full text string.
-      intervalCb?.(); // Invoke the stored interval callback.
+      (intervalCb as (() => void) | null)?.(); // Invoke the stored interval callback.
     }
 
     if (createdLabels.length === 0) {
@@ -461,10 +455,10 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
   it("clears typing interval when render id changes using real fake timers", () => { // Ensure the mismatch branch inside the interval executes.
     const stage = new FakeStage(640, 360); // Stage sizing.
     const layer = new FakeLayer(); // Fake layer capture.
-    let intervalCb: Function | null = null; // Store the interval callback created by StoryScreen.
+    let intervalCb: (() => void) | null = null; // Store the interval callback created by StoryScreen.
     const clearSpy = vi.fn(); // Spy on clearInterval calls.
     const intervalSpy = vi.spyOn(globalThis as any, "setInterval").mockImplementation((cb: any) => { // Capture the interval callback without scheduling timers.
-      intervalCb = cb; // Save callback for manual invocation.
+      intervalCb = cb as (() => void); // Save callback for manual invocation.
       return 15 as any; // Return dummy interval id.
     });
     (window as any).setInterval = globalThis.setInterval; // Ensure StoryScreen uses the mocked interval.
@@ -475,7 +469,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
 
     layer.batchDraw.mockClear?.(); // Ignore any initial draws before the mismatch tick.
     screen.currentRenderId++; // Force render id mismatch before the next interval tick.
-    intervalCb?.(); // Manually invoke the interval callback once.
+    (intervalCb as (() => void) | null)?.(); // Manually invoke the interval callback once.
     expect(layer.batchDraw).not.toHaveBeenCalled(); // Mismatch should abort updates without drawing.
     intervalSpy.mockRestore(); // Restore original setInterval implementation.
     clearSpy.mockRestore(); // Restore clearInterval implementation.
@@ -545,8 +539,8 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
   it("avoids clearing interval when it is already null during a render mismatch", () => { // Cover the false branch for typingInterval within the mismatch guard.
     const stage = new FakeStage(410, 260); // Stage sizing.
     const layer = new FakeLayer(); // Fake layer.
-    let savedInterval: Function | null = null; // Capture the interval callback.
-    (window as any).setInterval = (cb: Function) => { // Override setInterval to store the callback.
+    let savedInterval: (() => void) | null = null; // Capture the interval callback.
+    (window as any).setInterval = (cb: () => void) => { // Override setInterval to store the callback.
       savedInterval = cb; // Save callback for manual execution.
       return 2; // Return dummy id.
     };
@@ -556,7 +550,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
     const screen: any = new StoryScreen(stage as never, layer as never, vi.fn()); // Build screen.
     screen.typingInterval = null; // Null out typingInterval before invoking the callback.
     screen.currentRenderId++; // Force render mismatch.
-    savedInterval?.(); // Invoke the interval callback manually.
+    (savedInterval as (() => void) | null)?.(); // Invoke the interval callback manually.
     expect(clearSpy).not.toHaveBeenCalled(); // With a null interval, clearInterval should not run.
   });
 
@@ -589,9 +583,9 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
     const layer = new FakeLayer(); // Fake layer.
     (window as any).setGlobalBgmVolume = undefined; // Force slider callback to skip global setter.
     (window as any).getGlobalBgmVolume = undefined; // Force initial volume fallback.
-    let savedInterval: Function | null = null; // Capture the interval callback for manual execution.
+    let savedInterval: (() => void) | null = null; // Capture the interval callback for manual execution.
     const clearSpy = vi.fn(); // Spy on clearInterval.
-    (window as any).setInterval = (cb: Function) => { // Override setInterval to capture callback without scheduling.
+    (window as any).setInterval = (cb: () => void) => { // Override setInterval to capture callback without scheduling.
       savedInterval = cb; // Save for manual invocation.
       return 1; // Return dummy id to satisfy typingInterval storage.
     };
@@ -605,7 +599,7 @@ describe("StoryScreen", () => { // Group StoryScreen branch coverage tests toget
 
     layer.batchDraw.mockClear?.(); // Reset draw spy before forcing mismatch.
     screen.currentRenderId++; // Simulate a new render before the interval tick.
-    savedInterval?.(); // Manually execute the captured interval callback.
+    (savedInterval as (() => void) | null)?.(); // Manually execute the captured interval callback.
     expect(layer.batchDraw).not.toHaveBeenCalled(); // Mismatch should prevent drawing work.
   });
 });
