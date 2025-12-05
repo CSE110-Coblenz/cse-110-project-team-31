@@ -51,7 +51,7 @@
 - Added progress bar to DaySummary.
 
 **Nov 23, 2025**
-- Fixed test files to reach 
+- Fixed test files.
 
 **Nov 25, 2025**
 - Added pop ups post-minigame to give users feedback on incorrect answers.
